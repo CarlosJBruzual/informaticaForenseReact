@@ -1,25 +1,25 @@
 import { useId } from "react";
 import { getFieldClasses, getHintClasses, getLabelClasses } from "./fieldStyles";
 
-export const TextInput = ({
+export const TextAreaField = ({
     label,
     hint,
     id,
-    type = "text",
     value,
     onChange,
     onValueChange,
     placeholder,
     required,
     disabled,
-    variant = "light",
+    rows = 4,
+    variant = "glass",
     labelTone = "dark",
     className = "",
-    inputClassName = "",
+    textareaClassName = "",
     ...props
 }) => {
     const fallbackId = useId();
-    const inputId = id ?? fallbackId;
+    const textareaId = id ?? fallbackId;
     const controlledProps = value !== undefined ? { value } : {};
 
     const handleChange = (event) => {
@@ -28,16 +28,16 @@ export const TextInput = ({
     };
 
     return (
-        <label htmlFor={inputId} className={`flex w-full flex-col gap-2 text-sm ${className}`.trim()}>
+        <label htmlFor={textareaId} className={`flex w-full flex-col gap-2 text-sm ${className}`.trim()}>
             {label ? <span className={getLabelClasses({ tone: labelTone })}>{label}</span> : null}
-            <input
-                id={inputId}
-                type={type}
+            <textarea
+                id={textareaId}
+                rows={rows}
                 placeholder={placeholder}
                 required={required}
                 disabled={disabled}
                 onChange={handleChange}
-                className={getFieldClasses({ variant, disabled, className: inputClassName })}
+                className={getFieldClasses({ variant, disabled, className: textareaClassName })}
                 {...controlledProps}
                 {...props}
             />

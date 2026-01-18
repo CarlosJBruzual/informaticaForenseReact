@@ -1,9 +1,26 @@
-export const SectionHeader = ({ title, subtitle, align = "center" }) => {
-    const alignment = align === "left" ? "items-start text-left" : "items-center text-center";
+export const SectionHeader = ({
+    title,
+    subtitle,
+    align = "center",
+    className = "",
+    titleClassName = "",
+    subtitleClassName = "",
+}) => {
+    const alignmentMap = {
+        center: "items-center text-center",
+        left: "items-start text-left",
+        responsive: "items-center text-center sm:items-start sm:text-left",
+    };
+    const alignment = alignmentMap[align] ?? alignmentMap.center;
+
     return (
-        <div className={`flex flex-col gap-2 ${alignment}`}>
-            <p className="text-xl font-semibold text-white drop-shadow">{title}</p>
-            {subtitle ? <p className="text-base text-blue-100">{subtitle}</p> : null}
+        <div className={`flex flex-col gap-2 ${alignment} ${className}`.trim()}>
+            <p className={`text-xl font-semibold text-white drop-shadow ${titleClassName}`.trim()}>
+                {title}
+            </p>
+            {subtitle ? (
+                <p className={`text-base text-blue-100 ${subtitleClassName}`.trim()}>{subtitle}</p>
+            ) : null}
         </div>
     );
 };

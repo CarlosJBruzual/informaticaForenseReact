@@ -8,6 +8,10 @@ module.exports = {
                 indigoMid: "#1c398e",
                 slateDeep: "#1d293d",
             },
+            fontFamily: {
+                brand: ["\"Cinzel\"", "serif"],
+                body: ["\"Source Sans 3\"", "sans-serif"],
+            },
         },
     },
     plugins: [],
