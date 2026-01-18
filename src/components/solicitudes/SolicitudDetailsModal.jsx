@@ -19,7 +19,10 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
     const colorOtraValue = solicitud.evidenciaColorOtra || "No aplica";
 
     return (
-        <Surface variant="glass" className="w-full max-w-5xl p-6 text-white">
+        <Surface
+            variant="glass"
+            className="w-full max-w-5xl max-h-[calc(100vh-6rem)] overflow-y-auto p-6 text-white"
+        >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h3 className="text-lg font-semibold text-white">Detalle de Solicitud</h3>

@@ -27,6 +27,19 @@ const columns = [
     },
 ];
 
+const columnByKey = columns.reduce((acc, column) => {
+    acc[column.key] = column;
+    return acc;
+}, {});
+
+const mobileFields = [
+    { key: "solicitante", label: "Solicitante" },
+    { key: "numeroSolicitud", label: "N° Solicitud" },
+    { key: "tipoExperticia", label: "Tipo Experticia" },
+    { key: "expediente", label: "Expediente o Causa" },
+    { key: "prcc", label: "PRCC" },
+];
+
 const SkeletonRow = ({ tone = "light" }) => (
     <div className="flex items-center gap-3">
         <Skeleton tone={tone} className="h-4 w-24" />
@@ -61,6 +74,13 @@ export const SolicitudesTable = ({
     const headBgClass = isPaper ? "bg-slate-100" : "bg-white/5";
     const headTextClass = isPaper ? "text-slate-700" : "text-white";
     const footerTextClass = isPaper ? "text-slate-600" : "text-blue-100";
+    const cardLabelClass = isPaper ? "text-slate-500" : "text-blue-200";
+    const cardValueClass = isPaper ? "text-slate-800" : "text-blue-100";
+    const cardTitleClass = isPaper ? "text-slate-900" : "text-white";
+    const cardDividerClass = isPaper ? "border-slate-200/70" : "border-white/10";
+    const badgeClass = isPaper
+        ? "border-slate-200 bg-slate-100 text-slate-700"
+        : "border-white/10 bg-white/5 text-blue-100";
 
     useEffect(() => {
         setPageIndex(0);
@@ -74,6 +94,11 @@ export const SolicitudesTable = ({
         () => items.slice(pageStart, pageEnd),
         [items, pageEnd, pageStart],
     );
+
+    const getCellValue = (item, key) => {
+        const column = columnByKey[key];
+        return column?.render ? column.render(item) : item[key];
+    };
 
     const canGoPrev = safePageIndex > 0;
     const canGoNext = safePageIndex < totalPages - 1;
@@ -100,70 +125,163 @@ export const SolicitudesTable = ({
             {items.length === 0 ? (
                 <p className={`text-sm ${emptyClass}`.trim()}>{emptyMessage}</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table
-                        className={`min-w-full divide-y text-sm ${tableTextClass} ${tableDividerClass}`.trim()}
-                    >
-                        <thead className={`${headBgClass} ${headTextClass}`.trim()}>
-                            <tr>
-                                {columns.map((column) => (
-                                    <th key={column.key} className="px-3 py-2 text-left">
-                                        {column.label}
-                                    </th>
-                                ))}
+                <>
+                    <div className="space-y-3 md:hidden">
+                        {pagedItems.map((item) => (
+                            <Surface
+                                key={item.id}
+                                variant={variant}
+                                className={`rounded-xl p-3 ${cardDividerClass}`.trim()}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <p className={`text-[11px] uppercase tracking-wide ${cardLabelClass}`.trim()}>
+                                            N° Entrada
+                                        </p>
+                                        <p className={`text-base font-semibold ${cardTitleClass}`.trim()}>
+                                            {getCellValue(item, "numeroEntrada")}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`text-[11px] uppercase tracking-wide ${cardLabelClass}`.trim()}>
+                                            Recepción
+                                        </p>
+                                        <p className={`text-xs font-semibold ${cardValueClass}`.trim()}>
+                                            {getCellValue(item, "fechaRecepcion")}
+                                        </p>
+                                        {item.porGuardia ? (
+                                            <span
+                                                className={`mt-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeClass}`.trim()}
+                                            >
+                                                Por guardia
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-1 gap-2 text-xs">
+                                    {mobileFields.map((field) => {
+                                        const rawValue =
+                                            field.key === "expediente" && item.porGuardia
+                                                ? item.expediente ?? "-"
+                                                : getCellValue(item, field.key);
+                                        const displayValue =
+                                            rawValue === null || rawValue === undefined || rawValue === ""
+                                                ? "-"
+                                                : rawValue;
+
+                                        return (
+                                            <div
+                                                key={`${item.id}-${field.key}`}
+                                                className="flex items-center justify-between gap-2"
+                                            >
+                                                <span className={cardLabelClass}>{field.label}</span>
+                                                <span className={`text-right ${cardValueClass}`.trim()}>
+                                                    {displayValue}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                                 {hasActions ? (
-                                    <th className="px-3 py-2 text-left">Acciones</th>
+                                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                        {onView ? (
+                                            <Frame
+                                                variant="ghost"
+                                                className="w-full justify-center px-3 py-1 text-xs sm:w-auto"
+                                                type="button"
+                                                onClick={() => onView(item)}
+                                            >
+                                                Ver
+                                            </Frame>
+                                        ) : null}
+                                        {onRemit ? (
+                                            item.remision ? (
+                                                <span
+                                                    className={`w-full rounded-lg border px-3 py-1 text-center text-xs sm:w-auto ${badgeClass}`.trim()}
+                                                >
+                                                    Evidencia remitida
+                                                </span>
+                                            ) : (
+                                                <Frame
+                                                    variant="primary"
+                                                    className="w-full justify-center px-3 py-1 text-xs sm:w-auto"
+                                                    type="button"
+                                                    onClick={() => onRemit(item)}
+                                                >
+                                                    Remitir evidencia
+                                                </Frame>
+                                            )
+                                        ) : null}
+                                    </div>
                                 ) : null}
-                            </tr>
-                        </thead>
-                        <tbody className={`divide-y ${bodyDividerClass}`.trim()}>
-                            {pagedItems.map((item) => (
-                                <tr key={item.id}>
+                            </Surface>
+                        ))}
+                    </div>
+                    <div className="hidden overflow-x-auto md:block">
+                        <table
+                            className={`min-w-full divide-y text-sm ${tableTextClass} ${tableDividerClass}`.trim()}
+                        >
+                            <thead className={`${headBgClass} ${headTextClass}`.trim()}>
+                                <tr>
                                     {columns.map((column) => (
-                                        <td
-                                            key={`${item.id}-${column.key}`}
-                                            className={`px-3 py-2 ${column.cellClassName ?? ""}`.trim()}
-                                        >
-                                            {column.render ? column.render(item) : item[column.key]}
-                                        </td>
+                                        <th key={column.key} className="px-3 py-2 text-left">
+                                            {column.label}
+                                        </th>
                                     ))}
                                     {hasActions ? (
-                                        <td className="px-3 py-2">
-                                            <div className="flex flex-wrap gap-2">
-                                                {onView ? (
-                                                    <Frame
-                                                        variant="ghost"
-                                                        className="px-3 py-1 text-xs"
-                                                        type="button"
-                                                        onClick={() => onView(item)}
-                                                    >
-                                                        Ver
-                                                    </Frame>
-                                                ) : null}
-                                                {onRemit ? (
-                                                    item.remision ? (
-                                                        <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-blue-100">
-                                                            Evidencia remitida
-                                                        </span>
-                                                    ) : (
-                                                        <Frame
-                                                            variant="primary"
-                                                            className="px-3 py-1 text-xs"
-                                                            type="button"
-                                                            onClick={() => onRemit(item)}
-                                                        >
-                                                            Remitir evidencia
-                                                        </Frame>
-                                                    )
-                                                ) : null}
-                                            </div>
-                                        </td>
+                                        <th className="px-3 py-2 text-left">Acciones</th>
                                     ) : null}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className={`divide-y ${bodyDividerClass}`.trim()}>
+                                {pagedItems.map((item) => (
+                                    <tr key={item.id}>
+                                        {columns.map((column) => (
+                                            <td
+                                                key={`${item.id}-${column.key}`}
+                                                className={`px-3 py-2 ${column.cellClassName ?? ""}`.trim()}
+                                            >
+                                                {column.render ? column.render(item) : item[column.key]}
+                                            </td>
+                                        ))}
+                                        {hasActions ? (
+                                            <td className="px-3 py-2">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {onView ? (
+                                                        <Frame
+                                                            variant="ghost"
+                                                            className="px-3 py-1 text-xs"
+                                                            type="button"
+                                                            onClick={() => onView(item)}
+                                                        >
+                                                            Ver
+                                                        </Frame>
+                                                    ) : null}
+                                                    {onRemit ? (
+                                                        item.remision ? (
+                                                            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-blue-100">
+                                                                Evidencia remitida
+                                                            </span>
+                                                        ) : (
+                                                            <Frame
+                                                                variant="primary"
+                                                                className="px-3 py-1 text-xs"
+                                                                type="button"
+                                                                onClick={() => onRemit(item)}
+                                                            >
+                                                                Remitir evidencia
+                                                            </Frame>
+                                                        )
+                                                    ) : null}
+                                                </div>
+                                            </td>
+                                        ) : null}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
             {items.length > 0 ? (
                 <div

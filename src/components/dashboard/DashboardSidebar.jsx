@@ -32,7 +32,7 @@ export const DashboardSidebar = ({
         <>
             <Surface
                 variant="dark"
-                className={`min-h-screen w-72 flex-none rounded-none border-r border-white/10 p-4 ${className}`.trim()}
+                className={`w-full flex-none rounded-none border-b border-white/10 p-4 md:min-h-screen md:w-72 md:border-b-0 md:border-r ${className}`.trim()}
             >
                 <div className="flex flex-col gap-3">
                     {user ? (
