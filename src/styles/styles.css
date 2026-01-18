@@ -1,0 +1,375 @@
+:root {
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+
+body {
+    margin: 0;
+    font-family: "Arial", Helvetica, sans-serif;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+.home-page-with-login {
+    background: linear-gradient(
+            117deg,
+            rgba(15, 23, 43, 1) 0%,
+            rgba(28, 57, 142, 1) 50%,
+            rgba(29, 41, 61, 1) 100%
+        ),
+        linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 1) 0%,
+            rgba(255, 255, 255, 1) 100%
+        );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+    min-height: 100vh;
+    width: 100%;
+    padding: 48px 24px 64px;
+    overflow: hidden;
+}
+
+.home-page-with-login .container {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 12px;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.home-page-with-login .heading {
+    width: 100%;
+}
+
+.home-page-with-login .cuerpo-de {
+    color: #ffffff;
+    font-family: "Roboto-Regular", Helvetica;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: 0.90px;
+    line-height: 45px;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+}
+
+.home-page-with-login .div-wrapper {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    height: 31.99px;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .text-wrapper {
+    color: #bddaff;
+    flex: 1;
+    font-family: "Roboto-Regular", Helvetica;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0.60px;
+    line-height: 32px;
+    margin-top: -1.00px;
+    position: relative;
+    text-align: center;
+}
+
+.home-page-with-login .div {
+    display: flex;
+    gap: 120px;
+    width: 100%;
+    max-width: 1200px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.home-page-with-login .image-logo-CICPC {
+    background-image: url(./Image.png);
+    background-position: 50% 50%;
+    background-size: cover;
+    box-shadow: 0px 30.2px 60.39px #00000026;
+    height: 309.2px;
+    width: 309.2px;
+}
+
+.home-page-with-login .card {
+    background-color: #ffffff;
+    border: 0.8px solid;
+    border-color: #0000001a;
+    border-radius: 14px;
+    box-shadow: 0px 25px 50px -12px #00000040;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 16px;
+    width: 100%;
+    max-width: 460px;
+    padding-bottom: 24px;
+}
+
+.home-page-with-login .card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px;
+    width: 100%;
+}
+
+.home-page-with-login .card-title {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.home-page-with-login .text-wrapper-2 {
+    color: #0a0a0a;
+    flex: 1;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 32px;
+    margin-top: -1.00px;
+    position: relative;
+    text-align: center;
+}
+
+.home-page-with-login .card-description {
+    display: flex;
+    justify-content: center;
+    padding: 0 24px;
+}
+
+.home-page-with-login .p {
+    color: #717182;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 24px;
+    margin: 0;
+    text-align: center;
+}
+
+.home-page-with-login .login-form {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 24px;
+    width: 100%;
+}
+
+.home-page-with-login .container-2 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 58px;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .primitive-label {
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    gap: 8px;
+    height: 14px;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .text-wrapper-3 {
+    color: #0a0a0a;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 14px;
+    margin-top: -1.00px;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.home-page-with-login .container-3 {
+    align-self: stretch;
+    height: 36px;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .input {
+    align-items: center;
+    background-color: #f3f3f5;
+    border: 0.8px solid;
+    border-color: transparent;
+    border-radius: 8px;
+    display: flex;
+    height: 36px;
+    left: 0;
+    overflow: hidden;
+    padding: 4px 12px 4px 40px;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+.home-page-with-login .text-wrapper-4 {
+    color: #717182;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.home-page-with-login .icon {
+    height: 16px;
+    left: 12px;
+    position: absolute;
+    top: 10px;
+    width: 16px;
+}
+
+.home-page-with-login .vector {
+    height: 25.00%;
+    left: 16.67%;
+    position: absolute;
+    top: 58.33%;
+    width: 58.33%;
+}
+
+.home-page-with-login .img {
+    height: 33.33%;
+    left: 29.17%;
+    position: absolute;
+    top: 8.33%;
+    width: 33.33%;
+}
+
+.home-page-with-login .vector-2 {
+    height: 45.83%;
+    left: 8.33%;
+    position: absolute;
+    top: 41.67%;
+    width: 75.00%;
+}
+
+.home-page-with-login .vector-3 {
+    height: 37.50%;
+    left: 25.00%;
+    position: absolute;
+    top: 4.17%;
+    width: 41.67%;
+}
+
+.home-page-with-login .container-4 {
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    height: 24px;
+    justify-content: space-between;
+    padding: 0;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .label {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    height: 24px;
+    position: relative;
+    width: 108.49px;
+}
+
+.home-page-with-login .checkbox {
+    height: 13px;
+    position: relative;
+    width: 13px;
+}
+
+.home-page-with-login .text {
+    flex: 1;
+    flex-grow: 1;
+    height: 24px;
+    position: relative;
+}
+
+.home-page-with-login .text-wrapper-5 {
+    color: #495565;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 16px;
+    font-weight: 400;
+    left: 0;
+    letter-spacing: 0;
+    line-height: 24px;
+    position: absolute;
+    top: -2px;
+    white-space: nowrap;
+}
+
+.home-page-with-login .link {
+    height: 20px;
+    position: relative;
+    width: 142.21px;
+}
+
+.home-page-with-login .text-wrapper-6 {
+    color: #155cfb;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 14px;
+    font-weight: 400;
+    left: 0;
+    letter-spacing: 0;
+    line-height: 20px;
+    position: absolute;
+    top: -1px;
+    white-space: nowrap;
+}
+
+.home-page-with-login .button {
+    all: unset;
+    align-self: stretch;
+    background-color: #030213;
+    border-radius: 8px;
+    box-sizing: border-box;
+    height: 36px;
+    position: relative;
+    width: 100%;
+}
+
+.home-page-with-login .text-wrapper-7 {
+    color: #ffffff;
+    font-family: "Arial-Regular", Helvetica;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 20px;
+    position: absolute;
+    text-align: center;
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
