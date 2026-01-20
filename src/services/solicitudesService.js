@@ -12,7 +12,7 @@ const mockSolicitudes = [
         evidenciaMarcaModelo: "REDMI M2003J15SS",
         evidenciaColorOtra:
             "Color celeste y morado. IMEI 865296050284833 e IMEI 2 865296051804837. Chip Digitel serial 895802191017015789.",
-        tipoExperticia: "Informatica",
+        tipoExperticia: "Adquisición de Evidencia de Digital",
         porGuardia: false,
         remision: {
             fechaRemision: "2024-09-07",
@@ -33,7 +33,7 @@ const mockSolicitudes = [
         descripcionEvidencia: "Teléfono móvil.",
         evidenciaMarcaModelo: "Samsung A53",
         evidenciaColorOtra: "IMEI 356783109998221. No aplica.",
-        tipoExperticia: "Telefonia",
+        tipoExperticia: "Determinacion de Evidencia Digital",
         porGuardia: true,
     },
     {
@@ -48,7 +48,7 @@ const mockSolicitudes = [
         descripcionEvidencia: "Disco duro externo.",
         evidenciaMarcaModelo: "Seagate 2TB",
         evidenciaColorOtra: "No aplica.",
-        tipoExperticia: "Video",
+        tipoExperticia: "Coleccion de Registros Filmicos",
         porGuardia: false,
         remision: {
             fechaRemision: "2024-09-08",
@@ -62,4 +62,20 @@ const mockSolicitudes = [
 export const fetchSolicitudes = () =>
     new Promise((resolve) => {
         setTimeout(() => resolve(mockSolicitudes), 800);
+    });
+
+export const fetchEvidenciasByExpediente = (expediente) =>
+    new Promise((resolve) => {
+        setTimeout(() => {
+            if (!expediente) {
+                resolve(undefined);
+                return;
+            }
+
+            const expedienteLower = expediente.toLowerCase();
+            const found = mockSolicitudes.find(
+                (item) => item.expediente && item.expediente.toLowerCase() === expedienteLower,
+            );
+            resolve(found);
+        }, 400);
     });

@@ -19,6 +19,7 @@ const columns = [
         render: (item) => (item.porGuardia ? "Por Guardia" : item.expediente || "-"),
     },
     { key: "prcc", label: "PRCC" },
+    { key: "prcc2", label: "PRCC 2", render: (item) => item.prcc2 || "-" },
     { key: "tipoExperticia", label: "Tipo Experticia" },
     {
         key: "porGuardia",
@@ -38,6 +39,7 @@ const mobileFields = [
     { key: "tipoExperticia", label: "Tipo Experticia" },
     { key: "expediente", label: "Expediente o Causa" },
     { key: "prcc", label: "PRCC" },
+    { key: "prcc2", label: "PRCC 2" },
 ];
 
 const SkeletonRow = ({ tone = "light" }) => (
@@ -208,7 +210,7 @@ export const SolicitudesTable = ({
                                                     type="button"
                                                     onClick={() => onRemit(item)}
                                                 >
-                                                    Remitir evidencia
+                                                    Remitir Dictamen
                                                 </Frame>
                                             )
                                         ) : null}
@@ -269,7 +271,7 @@ export const SolicitudesTable = ({
                                                                 type="button"
                                                                 onClick={() => onRemit(item)}
                                                             >
-                                                                Remitir evidencia
+                                                                Remitir Dictamen
                                                             </Frame>
                                                         )
                                                     ) : null}

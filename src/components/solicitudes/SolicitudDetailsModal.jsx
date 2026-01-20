@@ -18,6 +18,19 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
     const marcaModeloValue = solicitud.evidenciaMarcaModelo || "No aplica";
     const colorOtraValue = solicitud.evidenciaColorOtra || "No aplica";
 
+    const evidencias = Array.isArray(solicitud.evidencias) && solicitud.evidencias.length
+        ? solicitud.evidencias
+        : [
+              {
+                  id: "principal",
+                  tipo: "Principal",
+                  descripcion: descripcionValue,
+                  marcaModelo: marcaModeloValue,
+                  color: colorOtraValue,
+              },
+          ];
+
+
     return (
         <Surface
             variant="glass"
@@ -46,6 +59,7 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
                 <DetailItem label="Fecha de Solicitud" value={solicitud.fechaSolicitud} />
                 <DetailItem label="Expediente o Causa Penal" value={expedienteValue} />
                 <DetailItem label="PRCC" value={solicitud.prcc} />
+                <DetailItem label="PRCC 2" value={solicitud.prcc2 || "-"} />
                 <DetailItem label="Tipo de Experticia" value={solicitud.tipoExperticia} />
                 <DetailItem label="Por Guardia" value={solicitud.porGuardia ? "Sí" : "No"} />
             </div>
@@ -56,6 +70,60 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
                     <DetailItem label="Descripción" value={descripcionValue} />
                     <DetailItem label="Marca y modelo" value={marcaModeloValue} />
                     <DetailItem label="Color y otra información" value={colorOtraValue} />
+                </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+                <h4 className="text-sm font-semibold text-white">Evidencias registradas</h4>
+                <div className="space-y-2">
+                    {evidencias.map((item) => {
+                        const marcaModelo =
+                            [item.marca, item.modelo].filter(Boolean).join(" ") || item.marcaModelo;
+                        return (
+                            <div
+                                key={item.id}
+                                className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-3"
+                            >
+                                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-indigo-200">
+                                    <span>{item.tipo || "Evidencia"}</span>
+                                    {item.rrss ? <span className="text-[11px] text-blue-100">RRSS/Web</span> : null}
+                                </div>
+                                <span className="text-sm text-white">{item.descripcion || "Sin descripción"}</span>
+                                {marcaModelo ? (
+                                    <span className="text-xs text-blue-100">{marcaModelo}</span>
+                                ) : null}
+                                {item.color ? (
+                                    <span className="text-xs text-blue-200">Color: {item.color}</span>
+                                ) : null}
+                                {item.imei || item.meid ? (
+                                    <span className="text-xs text-blue-200">
+                                        IMEI/MEID: {item.imei || item.meid}
+                                    </span>
+                                ) : null}
+                                {item.numeroSerie ? (
+                                    <span className="text-xs text-blue-200">Serie: {item.numeroSerie}</span>
+                                ) : null}
+                                {item.capacidad ? (
+                                    <span className="text-xs text-blue-200">Capacidad: {item.capacidad}</span>
+                                ) : null}
+                                {item.contenido ? (
+                                    <span className="text-xs text-blue-200">Contenido: {item.contenido}</span>
+                                ) : null}
+                                {item.discos ? (
+                                    <span className="text-xs text-blue-200">Discos: {item.discos}</span>
+                                ) : null}
+                                {item.etiqueta ? (
+                                    <span className="text-xs text-blue-200">Etiqueta: {item.etiqueta}</span>
+                                ) : null}
+                                {item.tipo ? (
+                                    <span className="text-xs text-blue-200">Tipo: {item.tipo}</span>
+                                ) : null}
+                                {item.rrss ? (
+                                    <span className="text-xs text-blue-200">RRSS/Web: {item.rrss}</span>
+                                ) : null}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -84,6 +152,7 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
                     <p className="mt-2 text-sm text-blue-100">Sin remisión registrada.</p>
                 )}
             </div>
+
         </Surface>
     );
 };

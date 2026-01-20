@@ -5,13 +5,9 @@ import { Surface } from "../ui/Surface";
 import { TextInput } from "../ui/TextInput";
 
 const experticiaOptions = [
-    "Informática",
-    "Telefonía",
-    "Video",
-    "Audio",
-    "Imagen",
-    "Documentos Digitales",
-    "Redes y Comunicaciones",
+    "Adquisición de Evidencia de Digital",
+    "Determinacion de Evidencia Digital",
+    "Coleccion de Registros Filmicos",
 ];
 
 const yesNoOptions = ["Sí", "No"];

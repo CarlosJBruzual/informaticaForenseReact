@@ -11,7 +11,7 @@ import { Surface } from "../../components/ui/Surface";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
 
-const solicitudesSubmenu = [];
+const solicitudesSubmenu = ["Recibidas", "Remitidas", "Por Remitir", "Por Guardia"];
 const initialFilters = {
     numeroEntrada: "",
     solicitante: "",
@@ -41,7 +41,8 @@ const matchesFilters = (item, filters) => {
     if (!matchIncludes(item.numeroEntrada, filters.numeroEntrada)) return false;
     if (!matchIncludes(item.solicitante, filters.solicitante)) return false;
     if (!matchIncludes(item.numeroSolicitud, filters.numeroSolicitud)) return false;
-    if (!matchIncludes(item.prcc, filters.prcc)) return false;
+    if (!matchIncludes(item.prcc, filters.prcc) && !matchIncludes(item.prcc2 || "", filters.prcc))
+        return false;
     if (!matchIncludes(item.expediente, filters.expediente)) return false;
     if (filters.fechaRecepcion && item.fechaRecepcion !== filters.fechaRecepcion) return false;
     if (filters.fechaSolicitud && item.fechaSolicitud !== filters.fechaSolicitud) return false;
@@ -55,10 +56,7 @@ const matchesFilters = (item, filters) => {
 };
 
 const displayValueMap = {
-    tipoExperticia: {
-        Informatica: "Informática",
-        Telefonia: "Telefonía",
-    },
+    tipoExperticia: {},
 };
 
 const mapSolicitudForDisplay = (solicitud) => ({
@@ -114,8 +112,14 @@ export const Solicitudes = ({ activePath }) => {
         if (normSub === "remitidas") {
             return solicitudes.filter((s) => Boolean(s.remision));
         }
+        if (normSub === "porremitir") {
+            return solicitudes.filter((s) => !s.remision);
+        }
         if (normSub === "porguardia") {
             return solicitudes.filter((s) => s.porGuardia === true);
+        }
+        if (normSub === "recibidas") {
+            return solicitudes.filter((s) => Boolean(s.fechaRecepcion));
         }
         return solicitudes;
     }, [activeSubmenu, solicitudes]);
@@ -185,7 +189,7 @@ export const Solicitudes = ({ activePath }) => {
                         onClick={() => setIsCreateOpen(true)}
                         disabled={!policy.canSubmit || isReadOnly}
                     >
-                        Crear Solicitud
+                        Registrar Solicitud
                     </Frame>
                 </div>
 

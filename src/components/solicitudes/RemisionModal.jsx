@@ -63,7 +63,7 @@ export const RemisionModal = ({ solicitud, onClose, onSubmit, isReadOnly = false
         >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">Remitir evidencia</h3>
+                    <h3 className="text-lg font-semibold text-white">Remitir Dictamen</h3>
                     <p className="text-sm text-blue-100">{solicitud.numeroSolicitud}</p>
                 </div>
                 <Frame

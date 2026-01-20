@@ -6,6 +6,7 @@ export const initialSolicitudState = {
     fechaSolicitud: "",
     expediente: "",
     prcc: "",
+    prcc2: "",
     descripcionEvidencia: "",
     evidenciaMarcaModelo: "",
     evidenciaColorOtra: "",
