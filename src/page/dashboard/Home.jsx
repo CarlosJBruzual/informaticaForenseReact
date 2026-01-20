@@ -94,6 +94,61 @@ export const DashboardHome = ({ activePath }) => {
         };
     }, [data, laboratorio, resguardo]);
 
+    const funcionarioStats = useMemo(() => {
+        const map = {};
+        const ensure = (name) => {
+            const safeName = name?.trim() || "Sin nombre";
+            map[safeName] =
+                map[safeName] ||
+                {
+                    nombre: safeName,
+                    solicitudes: 0,
+                    porRemitir: 0,
+                    dictamenes: 0,
+                    resguardo: 0,
+                    laboratorio: 0,
+                };
+            return map[safeName];
+        };
+
+        data.forEach((item) => {
+            if (item.solicitante) {
+                const entry = ensure(item.solicitante);
+                entry.solicitudes += 1;
+                if (!item.remision) entry.porRemitir += 1;
+            }
+            if (item.remision?.funcionarioEntrega) {
+                const entry = ensure(item.remision.funcionarioEntrega);
+                entry.dictamenes += 1;
+            }
+            if (item.remision?.funcionarioRecibe) {
+                const entry = ensure(item.remision.funcionarioRecibe);
+                entry.dictamenes += 1;
+            }
+        });
+
+        resguardo.forEach((item) => {
+            if (item.recibidoPor) {
+                const entry = ensure(item.recibidoPor);
+                entry.resguardo += 1;
+            }
+        });
+
+        laboratorio.forEach((item) => {
+            if (item.recibidoPor) {
+                const entry = ensure(item.recibidoPor);
+                entry.laboratorio += 1;
+            }
+        });
+
+        return Object.values(map)
+            .map((row) => ({
+                ...row,
+                total: row.solicitudes + row.dictamenes + row.porRemitir + row.resguardo + row.laboratorio,
+            }))
+            .sort((a, b) => b.total - a.total);
+    }, [data, laboratorio, resguardo]);
+
     const pendientesPct = metrics.total ? (metrics.pendientes / metrics.total) * 100 : 0;
     const experticiaTotal = metrics.experticiaEntries.reduce((sum, entry) => sum + entry.value, 0);
 
@@ -305,6 +360,51 @@ export const DashboardHome = ({ activePath }) => {
                         </div>
                     </Surface>
                 </div>
+
+                <Surface variant="dark" className="mt-4 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-white">Medición por funcionario</p>
+                    <p className="text-xs text-blue-100">
+                        Solicitudes registradas y remisiones por persona (dictámenes, resguardo, laboratorio).
+                    </p>
+                    {isLoading || isLoadingExtras ? (
+                        <div className="mt-3 space-y-2">
+                            <Skeleton className="h-3 w-48" />
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-3/4" />
+                        </div>
+                    ) : funcionarioStats.length === 0 ? (
+                        <p className="mt-3 text-sm text-blue-100">Sin datos de funcionarios.</p>
+                    ) : (
+                        <div className="mt-3 overflow-x-auto">
+                            <table className="min-w-full divide-y divide-white/10 text-sm text-blue-100">
+                                <thead className="bg-white/5 text-left text-white">
+                                    <tr>
+                                        <th className="px-3 py-2">Funcionario</th>
+                                        <th className="px-3 py-2">Solicitudes registradas</th>
+                                        <th className="px-3 py-2">Dictámenes remitidos</th>
+                                        <th className="px-3 py-2">Por remitir</th>
+                                        <th className="px-3 py-2">Evidencias a Resguardo</th>
+                                        <th className="px-3 py-2">Remisiones a Laboratorio</th>
+                                        <th className="px-3 py-2">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10">
+                                    {funcionarioStats.map((row) => (
+                                        <tr key={row.nombre}>
+                                            <td className="px-3 py-2 text-white">{row.nombre}</td>
+                                            <td className="px-3 py-2">{row.solicitudes}</td>
+                                            <td className="px-3 py-2">{row.dictamenes}</td>
+                                            <td className="px-3 py-2">{row.porRemitir}</td>
+                                            <td className="px-3 py-2">{row.resguardo}</td>
+                                            <td className="px-3 py-2">{row.laboratorio}</td>
+                                            <td className="px-3 py-2 font-semibold text-white">{row.total}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </Surface>
             </Surface>
         </DashboardLayout>
     );
