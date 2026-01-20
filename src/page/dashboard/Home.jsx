@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { Surface } from "../../components/ui/Surface";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { StatCard } from "../../components/ui/StatCard";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
+import { fetchRemisionesResguardo } from "../../services/resguardoService";
+import { fetchRemisionesLaboratorio } from "../../services/laboratorioService";
 
 const experticiaLabelMap = {
     Informatica: "Informática",
@@ -19,6 +21,19 @@ const getLastDate = (dates) => {
 
 export const DashboardHome = ({ activePath }) => {
     const { data, isLoading } = useSolicitudes();
+    const [resguardo, setResguardo] = useState([]);
+    const [laboratorio, setLaboratorio] = useState([]);
+    const [isLoadingExtras, setIsLoadingExtras] = useState(true);
+
+    useEffect(() => {
+        setIsLoadingExtras(true);
+        Promise.all([fetchRemisionesResguardo(), fetchRemisionesLaboratorio()])
+            .then(([rsg, lab]) => {
+                setResguardo(rsg);
+                setLaboratorio(lab);
+            })
+            .finally(() => setIsLoadingExtras(false));
+    }, []);
 
     const metrics = useMemo(() => {
         const total = data.length;
@@ -57,6 +72,11 @@ export const DashboardHome = ({ activePath }) => {
             .map(([label, value]) => ({ label, value }))
             .sort((a, b) => b.value - a.value);
 
+        const lastResguardo = getLastDate(resguardo.map((item) => item.fechaRecepcion).filter(Boolean));
+        const lastLaboratorio = getLastDate(
+            laboratorio.map((item) => item.fechaRemision).filter(Boolean),
+        );
+
         return {
             total,
             remitidas,
@@ -67,8 +87,12 @@ export const DashboardHome = ({ activePath }) => {
             avgRemisionDays,
             lastRecepcion,
             experticiaEntries,
+            resguardoTotal: resguardo.length,
+            laboratorioTotal: laboratorio.length,
+            lastResguardo,
+            lastLaboratorio,
         };
-    }, [data]);
+    }, [data, laboratorio, resguardo]);
 
     const pendientesPct = metrics.total ? (metrics.pendientes / metrics.total) * 100 : 0;
     const experticiaTotal = metrics.experticiaEntries.reduce((sum, entry) => sum + entry.value, 0);
@@ -100,6 +124,18 @@ export const DashboardHome = ({ activePath }) => {
             progress: metrics.guardiaPct,
             showGauge: true,
         },
+        {
+            label: "Remisiones a Resguardo",
+            value: metrics.resguardoTotal,
+            meta: metrics.lastResguardo ? `Última: ${metrics.lastResguardo}` : "Sin datos",
+            progress: metrics.resguardoTotal ? 100 : 0,
+        },
+        {
+            label: "Remisiones a Laboratorio",
+            value: metrics.laboratorioTotal,
+            meta: metrics.lastLaboratorio ? `Última: ${metrics.lastLaboratorio}` : "Sin datos",
+            progress: metrics.laboratorioTotal ? 100 : 0,
+        },
     ];
 
     const operationalStats = [
@@ -128,9 +164,9 @@ export const DashboardHome = ({ activePath }) => {
                     Panel general para medir el desempeño operativo actual.
                 </p>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {isLoading
-                        ? Array.from({ length: 4 }).map((_, index) => (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+                    {isLoading || isLoadingExtras
+                        ? Array.from({ length: 5 }).map((_, index) => (
                               <Surface
                                   key={`summary-skel-${index}`}
                                   variant="dark"
@@ -236,6 +272,18 @@ export const DashboardHome = ({ activePath }) => {
                                 <span>Última recepción registrada</span>
                                 <span className="font-semibold text-white">
                                     {metrics.lastRecepcion ?? "Sin datos"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>Última a Resguardo</span>
+                                <span className="font-semibold text-white">
+                                    {metrics.lastResguardo ?? "Sin datos"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>Última a Laboratorio</span>
+                                <span className="font-semibold text-white">
+                                    {metrics.lastLaboratorio ?? "Sin datos"}
                                 </span>
                             </div>
                         </div>
