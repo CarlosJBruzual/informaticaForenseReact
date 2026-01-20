@@ -30,6 +30,13 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
               },
           ];
 
+    const primaryEvidence = evidencias[0] || {};
+    const marcaModeloPrimary =
+        primaryEvidence.marcaModelo || [primaryEvidence.marca, primaryEvidence.modelo].filter(Boolean).join(" ");
+    const descripcionDisplay = primaryEvidence.descripcion || descripcionValue;
+    const marcaModeloDisplay = marcaModeloPrimary || marcaModeloValue;
+    const colorDisplay = primaryEvidence.color || colorOtraValue;
+
 
     return (
         <Surface
@@ -62,15 +69,6 @@ export const SolicitudDetailsModal = ({ solicitud, onClose }) => {
                 <DetailItem label="PRCC 2" value={solicitud.prcc2 || "-"} />
                 <DetailItem label="Tipo de Experticia" value={solicitud.tipoExperticia} />
                 <DetailItem label="Por Guardia" value={solicitud.porGuardia ? "Sí" : "No"} />
-            </div>
-
-            <div className="mt-6">
-                <h4 className="text-sm font-semibold text-white">Descripción de Evidencia</h4>
-                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <DetailItem label="Descripción" value={descripcionValue} />
-                    <DetailItem label="Marca y modelo" value={marcaModeloValue} />
-                    <DetailItem label="Color y otra información" value={colorOtraValue} />
-                </div>
             </div>
 
             <div className="mt-6 space-y-3">

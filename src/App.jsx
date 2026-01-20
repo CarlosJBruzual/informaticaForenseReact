@@ -5,6 +5,7 @@ import { DashboardHome } from './page/dashboard/Home'
 import { DashboardSection } from './page/dashboard/Section'
 import { Solicitudes } from './page/dashboard/Solicitudes'
 import { Resguardo } from './page/dashboard/Resguardo'
+import { RemisionLaboratorio } from './page/dashboard/RemisionLaboratorio'
 import { DASHBOARD_SECTIONS } from './services/dashboardNavigation'
 import { navigateTo } from './utils/navigation'
 
@@ -21,6 +22,7 @@ function App() {
   const isDashboard = normalizedPath.startsWith('/dashboard')
   const isSolicitudes = normalizedPath.startsWith('/dashboard/solicitudes')
   const isResguardo = normalizedPath.startsWith('/dashboard/resguardo')
+  const isLaboratorio = normalizedPath.startsWith('/dashboard/laboratorio')
   const isLogout = normalizedPath === '/dashboard/cerrar-sesion'
 
   useEffect(() => {
@@ -41,6 +43,10 @@ function App() {
 
   if (isResguardo) {
     return <Resguardo activePath={normalizedPath} />
+  }
+
+  if (isLaboratorio) {
+    return <RemisionLaboratorio activePath={normalizedPath} />
   }
 
   const section = DASHBOARD_SECTIONS.find((item) => item.path === normalizedPath)

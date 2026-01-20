@@ -3,15 +3,16 @@ import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { Surface } from "../../components/ui/Surface";
 import { Frame } from "../../components/ui/Frame";
 import { SplashOverlay } from "../../components/ui/SplashOverlay";
-import { ResguardoFilters } from "../../components/resguardo/ResguardoFilters";
-import { ResguardoTable } from "../../components/resguardo/ResguardoTable";
-import { EvidenciasResguardoForm } from "../../components/resguardo/evidenciasResguado";
-import { fetchRemisionesResguardo } from "../../services/resguardoService";
+import { LaboratorioFilters } from "../../components/laboratorioFisico/LaboratorioFilters";
+import { LaboratorioTable } from "../../components/laboratorioFisico/LaboratorioTable";
+import { RemisionLaboratorioForm } from "../../components/laboratorioFisico/remisionLaboratorio";
+import { fetchRemisionesLaboratorio } from "../../services/laboratorioService";
 
 const initialFilters = {
     expediente: "",
     prcc: "",
-    fechaRecepcion: "",
+    fechaRemision: "",
+    numeroRemision: "",
     recibidoPor: "",
 };
 
@@ -28,7 +29,7 @@ const matchIncludes = (source, query) => {
     return normalize(source).includes(normalize(query));
 };
 
-export const Resguardo = ({ activePath }) => {
+export const RemisionLaboratorio = ({ activePath }) => {
     const [remisiones, setRemisiones] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [filters, setFilters] = useState(initialFilters);
@@ -36,7 +37,7 @@ export const Resguardo = ({ activePath }) => {
 
     useEffect(() => {
         setIsLoading(true);
-        fetchRemisionesResguardo()
+        fetchRemisionesLaboratorio()
             .then((data) => setRemisiones(data))
             .finally(() => setIsLoading(false));
     }, []);
@@ -46,7 +47,8 @@ export const Resguardo = ({ activePath }) => {
             if (!matchIncludes(item.expediente, filters.expediente)) return false;
             if (!matchIncludes(item.prcc, filters.prcc)) return false;
             if (!matchIncludes(item.recibidoPor, filters.recibidoPor)) return false;
-            if (filters.fechaRecepcion && item.fechaRecepcion !== filters.fechaRecepcion) return false;
+            if (!matchIncludes(item.numeroRemision, filters.numeroRemision)) return false;
+            if (filters.fechaRemision && item.fechaRemision !== filters.fechaRemision) return false;
             return true;
         });
     }, [filters, remisiones]);
@@ -61,11 +63,11 @@ export const Resguardo = ({ activePath }) => {
 
     const handleAddRemision = (data) => {
         const newItem = {
-            id: `RSG-${String(remisiones.length + 1).padStart(3, "0")}`,
-            numeroMemo: data.numeroMemo,
+            id: `LAB-${String(remisiones.length + 1).padStart(3, "0")}`,
+            numeroRemision: data.numeroRemision,
             expediente: data.expediente,
             prcc: data.prcc,
-            fechaRecepcion: data.fechaRecepcion,
+            fechaRemision: data.fechaRemision,
             recibidoPor: data.recibidoPor,
             descripcion: data.descripcionEvidencia,
         };
@@ -78,8 +80,8 @@ export const Resguardo = ({ activePath }) => {
             <Surface variant="glass" className="flex-1 p-6 text-left sm:p-8">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div className="space-y-1">
-                        <h2 className="text-xl font-semibold text-white">Remisión a Sala de Resguardo</h2>
-                        <p className="text-sm text-blue-100">Consulta y registra remisiones de evidencias.</p>
+                        <h2 className="text-xl font-semibold text-white">Remisión de Evidencia Derivada</h2>
+                        <p className="text-sm text-blue-100">Consulta y registra remisiones hacia el laboratorio físico.</p>
                     </div>
                     <Frame
                         className="w-full justify-center sm:w-auto"
@@ -91,14 +93,14 @@ export const Resguardo = ({ activePath }) => {
                 </div>
 
                 <div className="flex flex-col gap-6">
-                    <ResguardoFilters
+                    <LaboratorioFilters
                         filters={filters}
                         onChange={handleFilterChange}
                         onReset={handleResetFilters}
                         variant="glass"
                     />
 
-                    <ResguardoTable
+                    <LaboratorioTable
                         title="Historial de remisiones"
                         items={filteredItems}
                         emptyMessage="No hay remisiones registradas."
@@ -117,7 +119,7 @@ export const Resguardo = ({ activePath }) => {
                         <div>
                             <h3 className="text-lg font-semibold text-white">Registrar remisión</h3>
                             <p className="text-sm text-blue-100">
-                                Completa los datos para registrar una nueva remisión a resguardo.
+                                Completa los datos para registrar una nueva remisión al laboratorio.
                             </p>
                         </div>
                         <Frame
@@ -131,7 +133,7 @@ export const Resguardo = ({ activePath }) => {
                     </div>
 
                     <div className="mt-6">
-                        <EvidenciasResguardoForm onSubmitRecord={handleAddRemision} />
+                        <RemisionLaboratorioForm onSubmitRecord={handleAddRemision} />
                     </div>
                 </Surface>
             </SplashOverlay>

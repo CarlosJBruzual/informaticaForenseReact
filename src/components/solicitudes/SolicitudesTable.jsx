@@ -201,7 +201,7 @@ export const SolicitudesTable = ({
                                                 <span
                                                     className={`w-full rounded-lg border px-3 py-1 text-center text-xs sm:w-auto ${badgeClass}`.trim()}
                                                 >
-                                                    Evidencia remitida
+                                                    Dictamen Remitido
                                                 </span>
                                             ) : (
                                                 <Frame
@@ -262,7 +262,7 @@ export const SolicitudesTable = ({
                                                     {onRemit ? (
                                                         item.remision ? (
                                                             <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-blue-100">
-                                                                Evidencia remitida
+                                                                Dictamen Remitido
                                                             </span>
                                                         ) : (
                                                             <Frame

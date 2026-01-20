@@ -14,7 +14,7 @@ const initialState = {
 	descripcionEvidencia: "",
 };
 
-export const EvidenciasResguardoForm = () => {
+export const EvidenciasResguardoForm = ({ onSubmitRecord }) => {
 	const [formData, setFormData] = useState(initialState);
 	const [status, setStatus] = useState("");
 	const [lookupMessage, setLookupMessage] = useState("");
@@ -26,6 +26,9 @@ export const EvidenciasResguardoForm = () => {
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
+		if (onSubmitRecord) {
+			onSubmitRecord(formData);
+		}
 		setStatus("Remisión registrada localmente (demo)");
 	};
 
