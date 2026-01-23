@@ -3,6 +3,7 @@ import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { Surface } from "../../components/ui/Surface";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { StatCard } from "../../components/ui/StatCard";
+import { Frame } from "../../components/ui/Frame";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
 import { fetchRemisionesResguardo } from "../../services/resguardoService";
 import { fetchRemisionesLaboratorio } from "../../services/laboratorioService";
@@ -19,11 +20,36 @@ const getLastDate = (dates) => {
     return dates.reduce((latest, current) => (current > latest ? current : latest), dates[0]);
 };
 
+const matchesPeriod = (dateString, mode, value) => {
+    if (!mode || !value) return true;
+    if (!dateString) return false;
+
+    const safeDate = typeof dateString === "string" ? dateString : String(dateString);
+
+    if (mode === "day") {
+        return safeDate.slice(0, 10) === value; // YYYY-MM-DD
+    }
+
+    if (mode === "month") {
+        return safeDate.slice(0, 7) === value; // YYYY-MM
+    }
+
+    if (mode === "year") {
+        return safeDate.slice(0, 4) === value; // YYYY
+    }
+
+    return true;
+};
+
 export const DashboardHome = ({ activePath }) => {
     const { data, isLoading } = useSolicitudes();
     const [resguardo, setResguardo] = useState([]);
     const [laboratorio, setLaboratorio] = useState([]);
     const [isLoadingExtras, setIsLoadingExtras] = useState(true);
+    const [periodMode, setPeriodMode] = useState("month"); // day | month | year
+    const [periodValue, setPeriodValue] = useState("");
+    const [isExportingGeneral, setIsExportingGeneral] = useState(false);
+    const [isExportingFuncionarios, setIsExportingFuncionarios] = useState(false);
 
     useEffect(() => {
         setIsLoadingExtras(true);
@@ -36,14 +62,26 @@ export const DashboardHome = ({ activePath }) => {
     }, []);
 
     const metrics = useMemo(() => {
-        const total = data.length;
-        const remitidas = data.filter((item) => item.remision).length;
+        const solicitudesSource = data.filter((item) =>
+            matchesPeriod(item.fechaRecepcion || item.fechaSolicitud, periodMode, periodValue),
+        );
+        const resguardoSource = resguardo.filter((item) =>
+            matchesPeriod(item.fechaRecepcion, periodMode, periodValue),
+        );
+        const laboratorioSource = laboratorio.filter((item) =>
+            matchesPeriod(item.fechaRemision, periodMode, periodValue),
+        );
+
+        const total = solicitudesSource.length;
+        const remitidas = solicitudesSource.filter(
+            (item) => item.remision && matchesPeriod(item.remision.fechaRemision, periodMode, periodValue),
+        ).length;
         const pendientes = total - remitidas;
-        const porGuardia = data.filter((item) => item.porGuardia).length;
+        const porGuardia = solicitudesSource.filter((item) => item.porGuardia).length;
         const remitidasPct = total ? (remitidas / total) * 100 : 0;
         const guardiaPct = total ? (porGuardia / total) * 100 : 0;
 
-        const remisionDurations = data
+        const remisionDurations = solicitudesSource
             .filter((item) => item.remision?.fechaRemision && item.fechaRecepcion)
             .map((item) => {
                 const start = new Date(item.fechaRecepcion);
@@ -58,10 +96,10 @@ export const DashboardHome = ({ activePath }) => {
             : null;
 
         const lastRecepcion = getLastDate(
-            data.map((item) => item.fechaRecepcion).filter(Boolean),
+            solicitudesSource.map((item) => item.fechaRecepcion).filter(Boolean),
         );
 
-        const experticiaCounts = data.reduce((acc, item) => {
+        const experticiaCounts = solicitudesSource.reduce((acc, item) => {
             const key = item.tipoExperticia || "Sin definir";
             const label = experticiaLabelMap[key] ?? key;
             acc[label] = (acc[label] ?? 0) + 1;
@@ -72,10 +110,20 @@ export const DashboardHome = ({ activePath }) => {
             .map(([label, value]) => ({ label, value }))
             .sort((a, b) => b.value - a.value);
 
-        const lastResguardo = getLastDate(resguardo.map((item) => item.fechaRecepcion).filter(Boolean));
-        const lastLaboratorio = getLastDate(
-            laboratorio.map((item) => item.fechaRemision).filter(Boolean),
+        const lastResguardo = getLastDate(
+            resguardoSource.map((item) => item.fechaRecepcion).filter(Boolean),
         );
+        const lastLaboratorio = getLastDate(
+            laboratorioSource.map((item) => item.fechaRemision).filter(Boolean),
+        );
+
+        const periodLabel = !periodValue
+            ? "Todos"
+            : periodMode === "day"
+            ? `Día ${periodValue}`
+            : periodMode === "month"
+            ? `Mes ${periodValue}`
+            : `Año ${periodValue}`;
 
         return {
             total,
@@ -87,12 +135,13 @@ export const DashboardHome = ({ activePath }) => {
             avgRemisionDays,
             lastRecepcion,
             experticiaEntries,
-            resguardoTotal: resguardo.length,
-            laboratorioTotal: laboratorio.length,
+            resguardoTotal: resguardoSource.length,
+            laboratorioTotal: laboratorioSource.length,
             lastResguardo,
             lastLaboratorio,
+            periodLabel,
         };
-    }, [data, laboratorio, resguardo]);
+    }, [data, laboratorio, resguardo, periodMode, periodValue]);
 
     const funcionarioStats = useMemo(() => {
         const map = {};
@@ -112,30 +161,41 @@ export const DashboardHome = ({ activePath }) => {
         };
 
         data.forEach((item) => {
-            if (item.solicitante) {
+            const inRangeSolicitud = matchesPeriod(
+                item.fechaRecepcion || item.fechaSolicitud,
+                periodMode,
+                periodValue,
+            );
+            const inRangeRemision = matchesPeriod(
+                item.remision?.fechaRemision,
+                periodMode,
+                periodValue,
+            );
+
+            if (inRangeSolicitud && item.solicitante) {
                 const entry = ensure(item.solicitante);
                 entry.solicitudes += 1;
                 if (!item.remision) entry.porRemitir += 1;
             }
-            if (item.remision?.funcionarioEntrega) {
+            if (inRangeRemision && item.remision?.funcionarioEntrega) {
                 const entry = ensure(item.remision.funcionarioEntrega);
                 entry.dictamenes += 1;
             }
-            if (item.remision?.funcionarioRecibe) {
+            if (inRangeRemision && item.remision?.funcionarioRecibe) {
                 const entry = ensure(item.remision.funcionarioRecibe);
                 entry.dictamenes += 1;
             }
         });
 
         resguardo.forEach((item) => {
-            if (item.recibidoPor) {
+            if (matchesPeriod(item.fechaRecepcion, periodMode, periodValue) && item.recibidoPor) {
                 const entry = ensure(item.recibidoPor);
                 entry.resguardo += 1;
             }
         });
 
         laboratorio.forEach((item) => {
-            if (item.recibidoPor) {
+            if (matchesPeriod(item.fechaRemision, periodMode, periodValue) && item.recibidoPor) {
                 const entry = ensure(item.recibidoPor);
                 entry.laboratorio += 1;
             }
@@ -144,10 +204,15 @@ export const DashboardHome = ({ activePath }) => {
         return Object.values(map)
             .map((row) => ({
                 ...row,
-                total: row.solicitudes + row.dictamenes + row.porRemitir + row.resguardo + row.laboratorio,
+                total:
+                    row.solicitudes +
+                    row.dictamenes +
+                    row.porRemitir +
+                    row.resguardo +
+                    row.laboratorio,
             }))
             .sort((a, b) => b.total - a.total);
-    }, [data, laboratorio, resguardo]);
+    }, [data, laboratorio, resguardo, periodMode, periodValue]);
 
     const pendientesPct = metrics.total ? (metrics.pendientes / metrics.total) * 100 : 0;
     const experticiaTotal = metrics.experticiaEntries.reduce((sum, entry) => sum + entry.value, 0);
@@ -211,13 +276,83 @@ export const DashboardHome = ({ activePath }) => {
         },
     ];
 
+    const periodInputType =
+        periodMode === "day" ? "date" : periodMode === "month" ? "month" : "number";
+
+    const handleExportGeneral = () => {
+        if (isExportingGeneral) return;
+        setIsExportingGeneral(true);
+        setTimeout(() => setIsExportingGeneral(false), 1200); // placeholder until API wiring
+    };
+
+    const handleExportFuncionarios = () => {
+        if (isExportingFuncionarios) return;
+        setIsExportingFuncionarios(true);
+        setTimeout(() => setIsExportingFuncionarios(false), 1200); // placeholder until API wiring
+    };
+
     return (
         <DashboardLayout activePath={activePath} contentWidth="full" contentPadding="sm">
             <Surface variant="glass" className="p-4 text-white">
-                <h2 className="text-lg font-semibold">Inicio</h2>
-                <p className="mt-1 text-sm text-blue-100">
-                    Panel general para medir el desempeño operativo actual.
-                </p>
+                <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold">Inicio</h2>
+                        <p className="mt-1 text-sm text-blue-100">
+                            Panel general para medir el desempeño operativo actual.
+                        </p>
+                    </div>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                        <div className="flex items-center gap-2 text-xs text-blue-100">
+                            <label htmlFor="period-mode" className="whitespace-nowrap">
+                                Periodo
+                            </label>
+                            <select
+                                id="period-mode"
+                                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
+                                value={periodMode}
+                                onChange={(e) => {
+                                    setPeriodMode(e.target.value);
+                                    setPeriodValue("");
+                                }}
+                            >
+                                <option value="day" className="bg-white text-slate-900">
+                                    Día
+                                </option>
+                                <option value="month" className="bg-white text-slate-900">
+                                    Mes
+                                </option>
+                                <option value="year" className="bg-white text-slate-900">
+                                    Año
+                                </option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-blue-100">
+                            <label htmlFor="period-value" className="whitespace-nowrap">
+                                Valor
+                            </label>
+                            <input
+                                id="period-value"
+                                type={periodInputType}
+                                min={periodMode === "year" ? "2000" : undefined}
+                                max={periodMode === "year" ? "2100" : undefined}
+                                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none sm:w-36"
+                                value={periodValue}
+                                onChange={(e) => setPeriodValue(e.target.value)}
+                                placeholder={periodMode === "year" ? "YYYY" : undefined}
+                            />
+                        </div>
+                        <Frame
+                            variant="ghost"
+                            className="justify-center"
+                            type="button"
+                            onClick={() => {
+                                setPeriodValue("");
+                            }}
+                        >
+                            Ver todo
+                        </Frame>
+                    </div>
+                </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
                     {isLoading || isLoadingExtras
@@ -244,6 +379,78 @@ export const DashboardHome = ({ activePath }) => {
                               />
                           ))}
                 </div>
+
+                <Surface variant="dark" className="mt-4 rounded-xl p-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-white">Rendimiento del periodo</p>
+                            <p className="text-xs text-blue-100">Periodo: {metrics.periodLabel}</p>
+                        </div>
+                        <Frame
+                            variant="ghost"
+                            className="justify-center disabled:cursor-not-allowed disabled:opacity-60"
+                            type="button"
+                            onClick={handleExportGeneral}
+                            disabled={isExportingGeneral}
+                        >
+                            {isExportingGeneral ? (
+                                <span className="flex items-center gap-2">
+                                    <span
+                                        className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                                        aria-hidden
+                                    />
+                                    Exportando...
+                                </span>
+                            ) : (
+                                "Exportar rendimiento"
+                            )}
+                        </Frame>
+                    </div>
+                    {isLoading || isLoadingExtras ? (
+                        <div className="mt-3 space-y-2">
+                            <Skeleton className="h-3 w-48" />
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-3/4" />
+                        </div>
+                    ) : (
+                        <div className="mt-3 overflow-x-auto">
+                            <table className="min-w-full divide-y divide-white/10 text-sm text-blue-100">
+                                <thead className="bg-white/5 text-left text-white">
+                                    <tr>
+                                        <th className="px-3 py-2">Indicador</th>
+                                        <th className="px-3 py-2">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10">
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Solicitudes registradas</td>
+                                        <td className="px-3 py-2">{metrics.total}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Dictámenes remitidos</td>
+                                        <td className="px-3 py-2">{metrics.remitidas}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Por remitir</td>
+                                        <td className="px-3 py-2">{metrics.pendientes}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Por guardia</td>
+                                        <td className="px-3 py-2">{metrics.porGuardia}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Evidencias a Resguardo</td>
+                                        <td className="px-3 py-2">{metrics.resguardoTotal}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-3 py-2 text-white">Remisiones a Laboratorio</td>
+                                        <td className="px-3 py-2">{metrics.laboratorioTotal}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </Surface>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                     {isLoading
@@ -366,6 +573,27 @@ export const DashboardHome = ({ activePath }) => {
                     <p className="text-xs text-blue-100">
                         Solicitudes registradas y remisiones por persona (dictámenes, resguardo, laboratorio).
                     </p>
+                    <div className="mt-2 flex justify-end">
+                        <Frame
+                            variant="ghost"
+                            className="justify-center disabled:cursor-not-allowed disabled:opacity-60"
+                            type="button"
+                            onClick={handleExportFuncionarios}
+                            disabled={isExportingFuncionarios}
+                        >
+                            {isExportingFuncionarios ? (
+                                <span className="flex items-center gap-2">
+                                    <span
+                                        className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                                        aria-hidden
+                                    />
+                                    Exportando...
+                                </span>
+                            ) : (
+                                "Exportar por funcionario"
+                            )}
+                        </Frame>
+                    </div>
                     {isLoading || isLoadingExtras ? (
                         <div className="mt-3 space-y-2">
                             <Skeleton className="h-3 w-48" />
