@@ -7,6 +7,7 @@ import { ResguardoFilters } from "../../components/resguardo/ResguardoFilters";
 import { ResguardoTable } from "../../components/resguardo/ResguardoTable";
 import { EvidenciasResguardoForm } from "../../components/resguardo/evidenciasResguado";
 import { fetchRemisionesResguardo } from "../../services/resguardoService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 const initialFilters = {
     expediente: "",
@@ -33,6 +34,8 @@ export const Resguardo = ({ activePath }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [filters, setFilters] = useState(initialFilters);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const { policy } = useRoleAccess();
+    const currentUserName = policy.label;
 
     useEffect(() => {
         setIsLoading(true);
@@ -66,6 +69,7 @@ export const Resguardo = ({ activePath }) => {
             expediente: data.expediente,
             prcc: data.prcc,
             fechaRecepcion: data.fechaRecepcion,
+            remitidoPor: currentUserName,
             recibidoPor: data.recibidoPor,
             descripcion: data.descripcionEvidencia,
         };

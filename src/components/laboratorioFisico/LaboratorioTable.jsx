@@ -8,6 +8,7 @@ const columns = [
     { key: "expediente", label: "Expediente" },
     { key: "prcc", label: "PRCC" },
     { key: "fechaRemision", label: "Fecha de remisión" },
+    { key: "remitidoPor", label: "Funcionario que remitió" },
     { key: "recibidoPor", label: "Recibido por" },
     { key: "descripcion", label: "Descripción" },
 ];

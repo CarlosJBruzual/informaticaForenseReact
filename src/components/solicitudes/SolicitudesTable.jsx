@@ -11,6 +11,11 @@ const columns = [
         render: (item) => item.numeroEntrada,
     },
     { key: "fechaRecepcion", label: "Fecha Recepción" },
+    {
+        key: "registradoPor",
+        label: "Funcionario que registra",
+        render: (item) => item.registradoPor || item.solicitante || "Sin dato",
+    },
     { key: "solicitante", label: "Solicitante" },
     { key: "numeroSolicitud", label: "N° Solicitud" },
     {
@@ -35,6 +40,7 @@ const columnByKey = columns.reduce((acc, column) => {
 
 const mobileFields = [
     { key: "solicitante", label: "Solicitante" },
+    { key: "registradoPor", label: "Registró" },
     { key: "numeroSolicitud", label: "N° Solicitud" },
     { key: "tipoExperticia", label: "Tipo Experticia" },
     { key: "expediente", label: "Expediente o Causa" },

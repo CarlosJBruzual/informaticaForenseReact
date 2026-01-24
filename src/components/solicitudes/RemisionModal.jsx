@@ -23,15 +23,27 @@ const buildErrors = (data) => {
     return errors;
 };
 
-export const RemisionModal = ({ solicitud, onClose, onSubmit, isReadOnly = false }) => {
+export const RemisionModal = ({
+    solicitud,
+    onClose,
+    onSubmit,
+    isReadOnly = false,
+    currentUserName = "",
+}) => {
     const [formData, setFormData] = useState(initialRemisionState);
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (!solicitud) return;
-        setFormData({ ...initialRemisionState, ...(solicitud.remision ?? {}) });
+        const prefilledEntrega =
+            solicitud.remision?.funcionarioEntrega || currentUserName || "";
+        setFormData({
+            ...initialRemisionState,
+            ...(solicitud.remision ?? {}),
+            funcionarioEntrega: prefilledEntrega,
+        });
         setErrors({});
-    }, [solicitud]);
+    }, [solicitud, currentUserName]);
 
     if (!solicitud) return null;
 

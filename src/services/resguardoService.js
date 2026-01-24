@@ -6,6 +6,7 @@ const mockRemisionesResguardo = [
         prcc: "PRCC-09-4421",
         fechaRecepcion: "2024-09-07",
         recibidoPor: "Of. María Duarte",
+        remitidoPor: "Inspector Jefe Carlos Rivas",
         descripcion: "Teléfono móvil REDMI M2003J15SS con chip Digitel.",
     },
     {
@@ -15,6 +16,7 @@ const mockRemisionesResguardo = [
         prcc: "PRCC-09-4433",
         fechaRecepcion: "2024-09-09",
         recibidoPor: "Tec. Javier Mora",
+        remitidoPor: "Inspector Sandra Villalobos",
         descripcion: "Disco duro externo Seagate 2TB.",
     },
 ];

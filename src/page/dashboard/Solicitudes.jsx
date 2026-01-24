@@ -76,6 +76,7 @@ export const Solicitudes = ({ activePath }) => {
     const hasSeeded = useRef(false);
     const { data: initialSolicitudes, isLoading } = useSolicitudes();
     const { policy, canEditField, isReadOnly } = useRoleAccess();
+    const currentUserName = policy.label;
 
     const currentModeLabel = policy.modeLabel === "Edicion" ? "Edición" : policy.modeLabel;
     const currentRoleLabel = policy.label === "Direccion" ? "Dirección" : policy.label;
@@ -265,6 +266,7 @@ export const Solicitudes = ({ activePath }) => {
                     onClose={() => setRemisionId(null)}
                     onSubmit={handleSaveRemision}
                     isReadOnly={isReadOnly}
+                    currentUserName={currentUserName}
                 />
             </SplashOverlay>
         </DashboardLayout>

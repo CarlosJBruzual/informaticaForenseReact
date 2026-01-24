@@ -7,6 +7,7 @@ import { LaboratorioFilters } from "../../components/laboratorioFisico/Laborator
 import { LaboratorioTable } from "../../components/laboratorioFisico/LaboratorioTable";
 import { RemisionLaboratorioForm } from "../../components/laboratorioFisico/remisionLaboratorio";
 import { fetchRemisionesLaboratorio } from "../../services/laboratorioService";
+import { useRoleAccess } from "../../hooks/useRoleAccess";
 
 const initialFilters = {
     expediente: "",
@@ -34,6 +35,8 @@ export const RemisionLaboratorio = ({ activePath }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [filters, setFilters] = useState(initialFilters);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const { policy } = useRoleAccess();
+    const currentUserName = policy.label;
 
     useEffect(() => {
         setIsLoading(true);
@@ -68,6 +71,7 @@ export const RemisionLaboratorio = ({ activePath }) => {
             expediente: data.expediente,
             prcc: data.prcc,
             fechaRemision: data.fechaRemision,
+            remitidoPor: currentUserName,
             recibidoPor: data.recibidoPor,
             descripcion: data.descripcionEvidencia,
         };

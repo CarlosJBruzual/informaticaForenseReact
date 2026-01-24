@@ -41,8 +41,8 @@ export const DashboardLayout = ({
 
     return (
         <PageShell padding="none" className="min-h-screen font-body">
-            <div className="flex min-h-screen flex-col md:flex-row">
-                <div className="hidden md:block">
+            <div className="flex h-screen flex-col overflow-hidden md:flex-row">
+                <div className="hidden md:block md:sticky md:top-0 md:h-screen md:overflow-y-auto md:shadow-xl">
                     <DashboardSidebar
                         items={DASHBOARD_NAV_ITEMS}
                         activePath={currentPath}
@@ -53,10 +53,11 @@ export const DashboardLayout = ({
                         onSelectSubmenu={onSelectSubmenu}
                         onNavigate={handleNavigate}
                         user={user}
+                        className="h-full"
                     />
                 </div>
 
-                <main className={`flex-1 ${paddingClasses}`.trim()}>
+                <main className={`flex-1 overflow-y-auto ${paddingClasses}`.trim()}>
                     <div className={`${widthClasses} flex flex-col ${gapClasses}`.trim()}>
                         <div className="flex items-center justify-between md:hidden">
                             <button
