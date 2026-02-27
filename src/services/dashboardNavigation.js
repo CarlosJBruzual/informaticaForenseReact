@@ -3,6 +3,7 @@ export const DASHBOARD_NAV_ITEMS = [
     { label: "Gestión", path: "/dashboard/solicitudes", hasSubmenu: true },
     { label: "Resguardo", path: "/dashboard/resguardo" },
     { label: "Laboratorio", path: "/dashboard/laboratorio" },
+    { label: "Usuarios", path: "/dashboard/usuarios", adminOnly: true },
     { label: "Cerrar Sesión", path: "/dashboard/cerrar-sesion", isAction: true },
 ];
 

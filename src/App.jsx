@@ -6,13 +6,17 @@ import { DashboardSection } from './page/dashboard/Section'
 import { Solicitudes } from './page/dashboard/Solicitudes'
 import { Resguardo } from './page/dashboard/Resguardo'
 import { RemisionLaboratorio } from './page/dashboard/RemisionLaboratorio'
+import { UsuariosAdmin } from './page/dashboard/UsuariosAdmin'
 import { DASHBOARD_SECTIONS } from './services/dashboardNavigation'
 import { navigateTo } from './utils/navigation'
+import { ensureUserSeed, getCurrentSession } from './services/userAuthService'
 
 function App() {
   const [path, setPath] = useState(() => window.location.pathname.toLowerCase())
+  const session = getCurrentSession()
 
   useEffect(() => {
+    ensureUserSeed()
     const handlePopState = () => setPath(window.location.pathname.toLowerCase())
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
@@ -23,6 +27,7 @@ function App() {
   const isSolicitudes = normalizedPath.startsWith('/dashboard/solicitudes')
   const isResguardo = normalizedPath.startsWith('/dashboard/resguardo')
   const isLaboratorio = normalizedPath.startsWith('/dashboard/laboratorio')
+  const isUsuarios = normalizedPath.startsWith('/dashboard/usuarios')
   const isLogout = normalizedPath === '/dashboard/cerrar-sesion'
 
   useEffect(() => {
@@ -31,6 +36,7 @@ function App() {
   }, [isLogout])
 
   if (!isDashboard) return <HomePageWithLogin />
+  if (isDashboard && !session && !isLogout) return <HomePageWithLogin />
   if (isLogout) return <HomePageWithLogin />
 
   if (normalizedPath === '/dashboard') {
@@ -47,6 +53,10 @@ function App() {
 
   if (isLaboratorio) {
     return <RemisionLaboratorio activePath={normalizedPath} />
+  }
+
+  if (isUsuarios) {
+    return <UsuariosAdmin activePath={normalizedPath} />
   }
 
   const section = DASHBOARD_SECTIONS.find((item) => item.path === normalizedPath)

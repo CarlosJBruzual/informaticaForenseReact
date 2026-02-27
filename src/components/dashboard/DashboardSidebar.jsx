@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Frame } from "../ui/Frame";
 import { Surface } from "../ui/Surface";
-import { SplashOverlay } from "../ui/SplashOverlay";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { clearCurrentSession } from "../../services/userAuthService";
 
 const isActivePath = (currentPath, targetPath) => {
     if (targetPath === "/dashboard") {
@@ -23,8 +24,10 @@ export const DashboardSidebar = ({
     className = "",
 }) => {
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
     const handleConfirmLogout = () => {
         setIsLogoutConfirmOpen(false);
+        clearCurrentSession();
         onNavigate?.("/");
     };
 
@@ -110,38 +113,15 @@ export const DashboardSidebar = ({
                 </div>
             </Surface>
 
-            <SplashOverlay isVisible={isLogoutConfirmOpen}>
-                <Surface variant="glass" className="w-full max-w-md p-6 text-white">
-                    <div className="flex flex-col gap-3">
-                        <div>
-                            <h3 className="text-lg font-semibold text-white">
-                                Confirmar cierre de sesión
-                            </h3>
-                            <p className="text-sm text-blue-100">
-                                ¿Está seguro de cerrar sesión?
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-3">
-                            <Frame
-                                variant="ghost"
-                                className="px-6"
-                                type="button"
-                                onClick={() => setIsLogoutConfirmOpen(false)}
-                            >
-                                Cancelar
-                            </Frame>
-                            <Frame
-                                variant="primary"
-                                className="px-6"
-                                type="button"
-                                onClick={handleConfirmLogout}
-                            >
-                                Cerrar Sesión
-                            </Frame>
-                        </div>
-                    </div>
-                </Surface>
-            </SplashOverlay>
+            <ConfirmDialog
+                isOpen={isLogoutConfirmOpen}
+                title="Confirmar cierre de sesión"
+                message="¿Está seguro de cerrar sesión?"
+                confirmLabel="Cerrar Sesión"
+                cancelLabel="Cancelar"
+                onCancel={() => setIsLogoutConfirmOpen(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </>
     );
 };

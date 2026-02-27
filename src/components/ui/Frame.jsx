@@ -1,6 +1,6 @@
 export const Frame = ({
     className = "",
-    children = "BOTON DE LEANDRY",
+    children = "BOTON DE Bruzual",
     variant = "primary",
     ...props
 }) => {

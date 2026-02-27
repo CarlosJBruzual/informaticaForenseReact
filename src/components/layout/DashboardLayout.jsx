@@ -3,12 +3,7 @@ import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { PageShell } from "./PageShell";
 import { DASHBOARD_NAV_ITEMS } from "../../services/dashboardNavigation";
 import { navigateTo } from "../../utils/navigation";
-
-const defaultUser = {
-    name: "Carlos Rivas",
-    rank: "Detective",
-    role: "Jefe de Oficina",
-};
+import { getCurrentSession } from "../../services/userAuthService";
 
 export const DashboardLayout = ({
     children,
@@ -18,11 +13,26 @@ export const DashboardLayout = ({
     isSubmenuOpen,
     onToggleSubmenu,
     onSelectSubmenu,
-    user = defaultUser,
+    user,
     contentWidth = "contained",
     contentPadding = "md",
 }) => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    const sessionUser = getCurrentSession();
+    const resolvedUser = user ?? (sessionUser
+        ? {
+              name: [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" "),
+              rank: sessionUser.rank || "Funcionario",
+              role: sessionUser.position || sessionUser.systemRole || "Usuario",
+          }
+        : {
+              name: "Carlos Bruzual",
+              rank: "Inspector Jefe",
+              role: "Jefe de Oficina",
+          });
+    const navItems = DASHBOARD_NAV_ITEMS.filter(
+        (item) => !item.adminOnly || sessionUser?.systemRole === "administrador",
+    );
     const currentPath =
         activePath ?? (typeof window !== "undefined" ? window.location.pathname : "/dashboard");
     const paddingClassesMap = {
@@ -44,7 +54,7 @@ export const DashboardLayout = ({
             <div className="flex h-screen flex-col overflow-hidden md:flex-row">
                 <div className="hidden md:block md:sticky md:top-0 md:h-screen md:overflow-y-auto md:shadow-xl">
                     <DashboardSidebar
-                        items={DASHBOARD_NAV_ITEMS}
+                        items={navItems}
                         activePath={currentPath}
                         submenuItems={submenuItems}
                         activeSubmenu={activeSubmenu}
@@ -52,7 +62,7 @@ export const DashboardLayout = ({
                         onToggleSubmenu={onToggleSubmenu}
                         onSelectSubmenu={onSelectSubmenu}
                         onNavigate={handleNavigate}
-                        user={user}
+                        user={resolvedUser}
                         className="h-full"
                     />
                 </div>
@@ -93,7 +103,7 @@ export const DashboardLayout = ({
                         className="relative z-10 h-full w-72 max-w-[85%]"
                     >
                         <DashboardSidebar
-                            items={DASHBOARD_NAV_ITEMS}
+                            items={navItems}
                             activePath={currentPath}
                             submenuItems={submenuItems}
                             activeSubmenu={activeSubmenu}
@@ -101,7 +111,7 @@ export const DashboardLayout = ({
                             onToggleSubmenu={onToggleSubmenu}
                             onSelectSubmenu={onSelectSubmenu}
                             onNavigate={handleNavigate}
-                            user={user}
+                            user={resolvedUser}
                             className="h-full w-full"
                         />
                     </div>

@@ -8,10 +8,17 @@ import { SplashOverlay } from "../components/ui/SplashOverlay";
 import { Surface } from "../components/ui/Surface";
 import { TextInput } from "../components/ui/TextInput";
 import { navigateTo } from "../utils/navigation";
+import { authenticateUser, ensureUserSeed, setCurrentSession } from "../services/userAuthService";
 
 export const HomePageWithLogin = () => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [showRecovery, setShowRecovery] = useState(false);
+    const [credentials, setCredentials] = useState({ username: "", password: "" });
+    const [loginError, setLoginError] = useState("");
+
+    useEffect(() => {
+        ensureUserSeed();
+    }, []);
 
     useEffect(() => {
         if (!isLoggingIn) return;
@@ -22,10 +29,28 @@ export const HomePageWithLogin = () => {
         return () => clearTimeout(timer);
     }, [isLoggingIn]);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (isLoggingIn) return;
-        setShowRecovery(false);
-        setIsLoggingIn(true);
+        try {
+            const user = await authenticateUser(credentials);
+            if (!user) {
+                setLoginError("Usuario o contraseña inválidos.");
+                return;
+            }
+
+            setShowRecovery(false);
+            setLoginError("");
+            setCurrentSession(user);
+            setIsLoggingIn(true);
+        } catch (error) {
+            if (error?.status === 401 || error?.status === 403) {
+                setLoginError(error.message || "Usuario o contraseña inválidos.");
+                return;
+            }
+
+            setLoginError("No se pudo conectar con el backend. Verifique el servidor.");
+            return;
+        }
     };
 
     return (
@@ -58,16 +83,30 @@ export const HomePageWithLogin = () => {
                                 <div className="space-y-4">
                                     <TextInput
                                         label="Usuario"
+                                        value={credentials.username}
                                         placeholder="Ingrese su usuario"
                                         variant="glass"
                                         labelTone="light"
+                                        onValueChange={(value) =>
+                                            setCredentials((prev) => ({
+                                                ...prev,
+                                                username: value,
+                                            }))
+                                        }
                                     />
                                     <TextInput
                                         label="Contraseña"
+                                        value={credentials.password}
                                         placeholder="Ingrese su contraseña"
                                         type="password"
                                         variant="glass"
                                         labelTone="light"
+                                        onValueChange={(value) =>
+                                            setCredentials((prev) => ({
+                                                ...prev,
+                                                password: value,
+                                            }))
+                                        }
                                     />
 
                                     <div className="flex items-center justify-between text-sm text-blue-100">
@@ -94,6 +133,18 @@ export const HomePageWithLogin = () => {
                                     >
                                         Ingresar
                                     </Frame>
+                                    {loginError ? (
+                                        <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                                            {loginError}
+                                        </p>
+                                    ) : null}
+                                    <p className="text-xs text-blue-200">
+                                        Admin inicial: <span className="font-semibold">admin</span>{" "}
+                                        / <span className="font-semibold">Admin123</span>
+                                    </p>
+                                    <p className="text-xs text-blue-200">
+                                        Usuario demo: Carlos Bruzual
+                                    </p>
                                 </div>
                             </div>
                         </Surface>

@@ -1,12 +1,14 @@
 import { FIELD_KEYS } from "./solicitudSchema";
 
 export const ROLE_KEYS = {
+    administrador: "administrador",
     funcionario: "funcionario",
     jefe: "jefe",
     direccion: "direccion",
 };
 
 export const ROLE_OPTIONS = [
+    { value: ROLE_KEYS.administrador, label: "Administrador" },
     { value: ROLE_KEYS.funcionario, label: "Funcionario" },
     { value: ROLE_KEYS.jefe, label: "Jefe de Oficina" },
     { value: ROLE_KEYS.direccion, label: "Direccion" },
@@ -28,6 +30,13 @@ const funcionarioEditableFields = [
 ];
 
 export const ROLE_POLICIES = {
+    [ROLE_KEYS.administrador]: {
+        label: "Administrador",
+        modeLabel: "Edicion",
+        canSubmit: true,
+        editableFields: FIELD_KEYS,
+        readOnly: false,
+    },
     [ROLE_KEYS.funcionario]: {
         label: "Funcionario",
         modeLabel: "Edicion",
