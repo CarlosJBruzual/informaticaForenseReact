@@ -1,6 +1,6 @@
 const SESSION_STORAGE_KEY = "informatica.session";
 const ROLE_STORAGE_KEY = "solicitudes.role";
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000/api").replace(
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://informaticabackend.onrender.com/api").replace(
     /\/+$/,
     "",
 );
@@ -33,10 +33,13 @@ export const USER_SYSTEM_ROLE_OPTIONS = [
 ];
 
 export const USER_RANK_OPTIONS = [
-    "Tecnico",
+    "Detective",
+    "Detective Asistente",
+    "Detective Supervisor",
     "Inspector",
+    "Inspector Adjunto",
     "Inspector Jefe",
-    "Jefe",
+    "Comisario",
 ];
 
 export const ensureUserSeed = () => {
@@ -68,6 +71,11 @@ async function apiRequest(path, options = {}) {
 
 export const getUsers = async () => {
     return apiRequest("/users");
+};
+
+export const getUserById = async (id) => {
+    if (!id) throw new Error("ID requerido");
+    return apiRequest(`/users/${id}`);
 };
 
 export const getCurrentSession = () => {
@@ -152,6 +160,34 @@ export const createUser = async (payload) => {
             position: normalize(payload.position),
             systemRole: normalize(payload.systemRole).toLowerCase() || "funcionario",
         }),
+    });
+
+    return { ok: true, user: data };
+};
+
+export const updateUser = async (id, payload) => {
+    if (!id) throw new Error("ID requerido");
+
+    const data = await apiRequest(`/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+            username: normalize(payload.username).toLowerCase(),
+            firstName: normalize(payload.firstName),
+            lastName: normalize(payload.lastName),
+            rank: normalize(payload.rank),
+            position: normalize(payload.position),
+            systemRole: normalize(payload.systemRole).toLowerCase() || "funcionario",
+        }),
+    });
+
+    return { ok: true, user: data };
+};
+
+export const changeUserPassword = async (id, password) => {
+    if (!id) throw new Error("ID requerido");
+    const data = await apiRequest(`/users/${id}/password`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: String(password ?? "") }),
     });
 
     return { ok: true, user: data };

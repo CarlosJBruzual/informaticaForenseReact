@@ -10,6 +10,10 @@ const initialRemisionState = {
     funcionarioEntrega: "",
 };
 
+const initialExtraState = {
+    expediente: "",
+};
+
 const requiredFields = Object.keys(initialRemisionState);
 
 const buildErrors = (data) => {
@@ -28,20 +32,24 @@ export const RemisionModal = ({
     onClose,
     onSubmit,
     isReadOnly = false,
+    isSubmitting = false,
     currentUserName = "",
 }) => {
     const [formData, setFormData] = useState(initialRemisionState);
+    const [extraData, setExtraData] = useState(initialExtraState);
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (!solicitud) return;
         const prefilledEntrega =
             solicitud.remision?.funcionarioEntrega || currentUserName || "";
+        const expedienteValue = solicitud.expediente || "";
         setFormData({
             ...initialRemisionState,
             ...(solicitud.remision ?? {}),
             funcionarioEntrega: prefilledEntrega,
         });
+        setExtraData({ expediente: expedienteValue });
         setErrors({});
     }, [solicitud, currentUserName]);
 
@@ -59,13 +67,20 @@ export const RemisionModal = ({
         });
     };
 
+    const handleExtraChange = (field, value) => {
+        setExtraData((prev) => ({ ...prev, [field]: value }));
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         if (isReadOnly) return;
         const nextErrors = buildErrors(formData);
+        if (solicitud.porGuardia && !extraData.expediente.trim()) {
+            nextErrors.expediente = "Expediente requerido para cerrar guardia";
+        }
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0) return;
-        onSubmit?.(formData);
+        onSubmit?.({ remision: formData, guardiaPatch: solicitud.porGuardia ? extraData : null });
     };
 
     return (
@@ -89,6 +104,20 @@ export const RemisionModal = ({
             </div>
 
             <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {(solicitud.porGuardia || !solicitud.expediente) ? (
+                    <TextInput
+                        label="Expediente o Causa Penal"
+                        value={extraData.expediente}
+                        onValueChange={(value) => handleExtraChange("expediente", value)}
+                        required={solicitud.porGuardia}
+                        variant="glass"
+                        labelTone="light"
+                        disabled={isReadOnly || isSubmitting}
+                        hint={errors.expediente}
+                        aria-invalid={Boolean(errors.expediente)}
+                        className="md:col-span-2"
+                    />
+                ) : null}
                 <TextInput
                     type="date"
                     label="Fecha de Remisión"
@@ -97,7 +126,7 @@ export const RemisionModal = ({
                     required
                     variant="glass"
                     labelTone="light"
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || isSubmitting}
                     hint={errors.fechaRemision}
                     aria-invalid={Boolean(errors.fechaRemision)}
                 />
@@ -108,7 +137,7 @@ export const RemisionModal = ({
                     required
                     variant="glass"
                     labelTone="light"
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || isSubmitting}
                     hint={errors.numeroDictamen}
                     aria-invalid={Boolean(errors.numeroDictamen)}
                 />
@@ -119,7 +148,7 @@ export const RemisionModal = ({
                     required
                     variant="glass"
                     labelTone="light"
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || isSubmitting}
                     hint={errors.funcionarioRecibe}
                     aria-invalid={Boolean(errors.funcionarioRecibe)}
                 />
@@ -130,7 +159,7 @@ export const RemisionModal = ({
                     required
                     variant="glass"
                     labelTone="light"
-                    disabled={isReadOnly}
+                    disabled={isReadOnly || isSubmitting}
                     hint={errors.funcionarioEntrega}
                     aria-invalid={Boolean(errors.funcionarioEntrega)}
                 />
@@ -148,9 +177,9 @@ export const RemisionModal = ({
                         variant="primary"
                         className="px-6"
                         type="submit"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || isSubmitting}
                     >
-                        Guardar Remisión
+                        {isSubmitting ? "Guardando..." : "Guardar Remisión"}
                     </Frame>
                 </div>
             </form>

@@ -4,6 +4,7 @@ import { TextInput } from "../ui/TextInput";
 import { TextAreaField } from "../ui/TextAreaField";
 import { Frame } from "../ui/Frame";
 import { fetchEvidenciasByExpediente } from "../../services/solicitudesService";
+import { createRemisionResguardo } from "../../services/resguardoService";
 
 const initialState = {
 	numeroMemo: "",
@@ -14,22 +15,41 @@ const initialState = {
 	descripcionEvidencia: "",
 };
 
-export const EvidenciasResguardoForm = ({ onSubmitRecord }) => {
+export const EvidenciasResguardoForm = ({ onSubmitRecord, remitidoPor }) => {
 	const [formData, setFormData] = useState(initialState);
 	const [status, setStatus] = useState("");
 	const [lookupMessage, setLookupMessage] = useState("");
 	const [isLookingUp, setIsLookingUp] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [submitError, setSubmitError] = useState("");
 
 	const handleChange = (field, value) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault();
-		if (onSubmitRecord) {
-			onSubmitRecord(formData);
+		setSubmitError("");
+		setStatus("");
+		setIsSubmitting(true);
+		try {
+			const result = await createRemisionResguardo({
+				numeroMemo: formData.numeroMemo,
+				expediente: formData.expediente,
+				prcc: formData.prcc,
+				fechaRecepcion: formData.fechaRecepcion,
+				recibidoPor: formData.recibidoPor,
+				remitidoPor: remitidoPor || formData.recibidoPor,
+				descripcion: formData.descripcionEvidencia,
+			});
+			onSubmitRecord?.(result?.remision || result);
+			setStatus("Remisión registrada");
+			setFormData(initialState);
+		} catch (error) {
+			setSubmitError(error?.message || "No se pudo registrar la remisión.");
+		} finally {
+			setIsSubmitting(false);
 		}
-		setStatus("Remisión registrada localmente (demo)");
 	};
 
 	const handleLookupExpediente = async () => {
@@ -51,7 +71,7 @@ export const EvidenciasResguardoForm = ({ onSubmitRecord }) => {
 				setLookupMessage("No se encontraron evidencias para este expediente.");
 			}
 		} catch (error) {
-			setLookupMessage("No se pudo consultar el expediente (demo).");
+			setLookupMessage("No se pudo consultar el expediente.");
 		} finally {
 			setIsLookingUp(false);
 		}
@@ -61,6 +81,7 @@ export const EvidenciasResguardoForm = ({ onSubmitRecord }) => {
 		setFormData(initialState);
 		setStatus("");
 		setLookupMessage("");
+		setSubmitError("");
 	};
 
 	return (
@@ -135,10 +156,14 @@ export const EvidenciasResguardoForm = ({ onSubmitRecord }) => {
 					<Frame variant="ghost" className="px-6" type="button" onClick={handleReset}>
 						Limpiar
 					</Frame>
-					<Frame variant="primary" className="px-6" type="submit">
-						Registrar remisión
+					<Frame variant="primary" className="px-6" type="submit" disabled={isSubmitting}>
+						{isSubmitting ? "Guardando..." : "Registrar remisión"}
 					</Frame>
 				</div>
+
+				{submitError ? (
+					<p className="text-sm text-red-200">{submitError}</p>
+				) : null}
 
 				{lookupMessage ? (
 					<p className="text-sm text-blue-200">{lookupMessage}</p>

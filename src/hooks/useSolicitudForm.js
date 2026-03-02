@@ -41,14 +41,20 @@ export const useSolicitudForm = (onSubmit) => {
         setHasSubmitted(false);
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         const nextErrors = createValidationErrors(formData);
         setErrors(nextErrors);
         setHasSubmitted(true);
         if (Object.keys(nextErrors).length > 0) return;
-        onSubmit?.(formData);
-        resetForm();
+        try {
+            const result = await onSubmit?.(formData);
+            if (result !== false) {
+                resetForm();
+            }
+        } catch {
+            // El manejador decide cómo mostrar el error; no se resetea.
+        }
     };
 
     const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);

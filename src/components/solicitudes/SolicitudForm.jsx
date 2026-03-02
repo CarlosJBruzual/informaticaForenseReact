@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSolicitudForm } from "../../hooks/useSolicitudForm";
+import { createSolicitud } from "../../services/solicitudesService";
 import { SolicitudFormSkeleton } from "./SolicitudFormSkeleton";
 import { Frame } from "../ui/Frame";
 import { SelectField } from "../ui/SelectField";
@@ -88,11 +89,14 @@ export const SolicitudForm = ({
     isReadOnly = false,
     isLoading = false,
 }) => {
+    const [submitError, setSubmitError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { formData, errors, hasErrors, setFieldValue, handleSubmit, resetForm } =
-        useSolicitudForm((data) => {
+        useSolicitudForm(async (data) => {
+            setSubmitError("");
+            setIsSubmitting(true);
             const primary = evidenceList[0] || {};
-            const newSolicitud = {
-                id: Date.now().toString(),
+            const payload = {
                 ...data,
                 descripcionEvidencia: primary.descripcion || data.descripcionEvidencia,
                 evidenciaMarcaModelo: primary.marcaModelo || data.evidenciaMarcaModelo,
@@ -103,8 +107,19 @@ export const SolicitudForm = ({
                     data.evidenciaColorOtra,
                 evidencias: evidenceList,
             };
-            onAdd?.(newSolicitud);
-            onSuccess?.();
+
+            try {
+                const result = await createSolicitud(payload);
+                const created = result?.solicitud || result;
+                onAdd?.(created);
+                onSuccess?.();
+                return true;
+            } catch (submitErr) {
+                setSubmitError(submitErr?.message || "No se pudo registrar la solicitud.");
+                return false;
+            } finally {
+                setIsSubmitting(false);
+            }
         });
 
     const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
@@ -304,6 +319,12 @@ export const SolicitudForm = ({
                 {fieldRows.flat().map(renderField)}
             </div>
 
+            {submitError ? (
+                <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                    {submitError}
+                </div>
+            ) : null}
+
             <div className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -385,8 +406,13 @@ export const SolicitudForm = ({
                 >
                     Cancelar
                 </Frame>
-                <Frame variant="primary" className="px-6" type="submit" disabled={!canSubmit || isReadOnly}>
-                    Guardar Solicitud
+                <Frame
+                    variant="primary"
+                    className="px-6"
+                    type="submit"
+                    disabled={!canSubmit || isReadOnly || isSubmitting}
+                >
+                    {isSubmitting ? "Guardando..." : "Guardar Solicitud"}
                 </Frame>
             </div>
 

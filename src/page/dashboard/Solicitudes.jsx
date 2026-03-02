@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "../../components/layout/DashboardLayout";
 import { SolicitudForm } from "../../components/solicitudes/SolicitudForm";
 import { SolicitudesFilters } from "../../components/solicitudes/SolicitudesFilters";
@@ -10,6 +10,7 @@ import { SplashOverlay } from "../../components/ui/SplashOverlay";
 import { Surface } from "../../components/ui/Surface";
 import { useRoleAccess } from "../../hooks/useRoleAccess";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
+import { updateSolicitudRemision, updateSolicitudGuardia } from "../../services/solicitudesService";
 
 const solicitudesSubmenu = ["Recibidas", "Remitidas", "Por Remitir", "Por Guardia"];
 const initialFilters = {
@@ -73,9 +74,11 @@ export const Solicitudes = ({ activePath }) => {
     const [remisionId, setRemisionId] = useState(null);
     const [solicitudes, setSolicitudes] = useState([]);
     const [filters, setFilters] = useState(initialFilters);
-    const hasSeeded = useRef(false);
-    const { data: initialSolicitudes, isLoading } = useSolicitudes();
+    const { data: initialSolicitudes, isLoading, error, refetch } = useSolicitudes();
     const { policy, canEditField, isReadOnly } = useRoleAccess();
+    const [statusMessage, setStatusMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [isSavingRemision, setIsSavingRemision] = useState(false);
     const currentUserName = policy.label;
 
     const currentModeLabel = policy.modeLabel === "Edicion" ? "Edición" : policy.modeLabel;
@@ -88,14 +91,21 @@ export const Solicitudes = ({ activePath }) => {
     );
 
     useEffect(() => {
-        if (isLoading || hasSeeded.current) return;
+        if (isLoading) return;
         setSolicitudes(displaySolicitudes);
-        hasSeeded.current = true;
     }, [displaySolicitudes, isLoading]);
+
+    useEffect(() => {
+        if (!statusMessage) return undefined;
+        const timer = setTimeout(() => setStatusMessage(""), 4000);
+        return () => clearTimeout(timer);
+    }, [statusMessage]);
 
     const handleAddSolicitud = (s) => {
         const sanitized = { ...s, porGuardia: s.porGuardia === true, remision: null };
         setSolicitudes((prev) => [sanitized, ...prev]);
+        setStatusMessage("Solicitud registrada");
+        setErrorMessage("");
     };
 
     const handleSelectSubmenu = (submenu) => {
@@ -155,14 +165,43 @@ export const Solicitudes = ({ activePath }) => {
         setRemisionId(solicitud.id);
     };
 
-    const handleSaveRemision = (remision) => {
+    const handleSaveRemision = ({ remision, guardiaPatch }) => {
         if (!remisionId) return;
-        setSolicitudes((prev) =>
-            prev.map((item) =>
-                item.id === remisionId ? { ...item, remision } : item,
-            ),
-        );
-        setRemisionId(null);
+        setIsSavingRemision(true);
+        setErrorMessage("");
+        setStatusMessage("");
+        const doUpdateGuardia = guardiaPatch
+            ? updateSolicitudGuardia(remisionId, {
+                  expediente: guardiaPatch.expediente,
+                  porGuardia: false,
+                  remitido: "si",
+              })
+            : Promise.resolve(null);
+
+        doUpdateGuardia
+            .then(() => updateSolicitudRemision(remisionId, remision))
+            .then((response) => {
+                const updated = response?.solicitud || null;
+                setSolicitudes((prev) =>
+                    prev.map((item) => {
+                        if (item.id !== remisionId) return item;
+                        const safeUpdated = updated ? { ...updated } : {};
+                        return {
+                            ...item,
+                            ...safeUpdated,
+                            remision,
+                            porGuardia: false,
+                            expediente: guardiaPatch?.expediente || item.expediente,
+                        };
+                    }),
+                );
+                setStatusMessage("Remisión registrada");
+                setRemisionId(null);
+            })
+            .catch((err) => {
+                setErrorMessage(err?.message || "No se pudo registrar la remisión.");
+            })
+            .finally(() => setIsSavingRemision(false));
     };
 
     return (
@@ -184,15 +223,40 @@ export const Solicitudes = ({ activePath }) => {
                             {currentRoleLabel} · {currentModeLabel}
                         </p>
                     </div>
-                    <Frame
-                        className="w-full justify-center sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
-                        type="button"
-                        onClick={() => setIsCreateOpen(true)}
-                        disabled={!policy.canSubmit || isReadOnly}
-                    >
-                        Registrar Solicitud
-                    </Frame>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <Frame
+                            variant="ghost"
+                            className="w-full justify-center sm:w-auto"
+                            type="button"
+                            onClick={() => {
+                                setErrorMessage("");
+                                setStatusMessage("");
+                                refetch();
+                            }}
+                        >
+                            Actualizar
+                        </Frame>
+                        <Frame
+                            className="w-full justify-center sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
+                            type="button"
+                            onClick={() => setIsCreateOpen(true)}
+                            disabled={!policy.canSubmit || isReadOnly}
+                        >
+                            Registrar Solicitud
+                        </Frame>
+                    </div>
                 </div>
+
+                {statusMessage ? (
+                    <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                        {statusMessage}
+                    </div>
+                ) : null}
+                {errorMessage || error ? (
+                    <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                        {errorMessage || error?.message || "Ocurrió un error"}
+                    </div>
+                ) : null}
 
                 <div className="flex flex-col gap-6">
                     <SolicitudesFilters
@@ -266,6 +330,7 @@ export const Solicitudes = ({ activePath }) => {
                     onClose={() => setRemisionId(null)}
                     onSubmit={handleSaveRemision}
                     isReadOnly={isReadOnly}
+                    isSubmitting={isSavingRemision}
                     currentUserName={currentUserName}
                 />
             </SplashOverlay>

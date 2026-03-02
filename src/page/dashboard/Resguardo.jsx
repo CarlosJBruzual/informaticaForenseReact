@@ -32,17 +32,35 @@ const matchIncludes = (source, query) => {
 export const Resguardo = ({ activePath }) => {
     const [remisiones, setRemisiones] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
     const [filters, setFilters] = useState(initialFilters);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const { policy } = useRoleAccess();
     const currentUserName = policy.label;
 
-    useEffect(() => {
+    const loadRemisiones = async () => {
         setIsLoading(true);
-        fetchRemisionesResguardo()
-            .then((data) => setRemisiones(data))
-            .finally(() => setIsLoading(false));
+        setErrorMessage("");
+        try {
+            const data = await fetchRemisionesResguardo();
+            setRemisiones(Array.isArray(data) ? data : []);
+        } catch (error) {
+            setErrorMessage(error?.message || "No se pudieron cargar las remisiones.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadRemisiones();
     }, []);
+
+    useEffect(() => {
+        if (!statusMessage) return undefined;
+        const timer = setTimeout(() => setStatusMessage(""), 4000);
+        return () => clearTimeout(timer);
+    }, [statusMessage]);
 
     const filteredItems = useMemo(() => {
         return remisiones.filter((item) => {
@@ -63,17 +81,11 @@ export const Resguardo = ({ activePath }) => {
     };
 
     const handleAddRemision = (data) => {
-        const newItem = {
-            id: `RSG-${String(remisiones.length + 1).padStart(3, "0")}`,
-            numeroMemo: data.numeroMemo,
-            expediente: data.expediente,
-            prcc: data.prcc,
-            fechaRecepcion: data.fechaRecepcion,
-            remitidoPor: currentUserName,
-            recibidoPor: data.recibidoPor,
-            descripcion: data.descripcionEvidencia,
-        };
-        setRemisiones((prev) => [newItem, ...prev]);
+        // data viene del API; usamos el que retorne el servicio
+        if (!data) return;
+        setRemisiones((prev) => [data, ...prev]);
+        setStatusMessage("Remisión registrada");
+        setErrorMessage("");
         setIsFormOpen(false);
     };
 
@@ -88,11 +100,26 @@ export const Resguardo = ({ activePath }) => {
                     <Frame
                         className="w-full justify-center sm:w-auto"
                         type="button"
-                        onClick={() => setIsFormOpen(true)}
+                        onClick={() => {
+                            setErrorMessage("");
+                            setStatusMessage("");
+                            setIsFormOpen(true);
+                        }}
                     >
                         Registrar remisión
                     </Frame>
                 </div>
+
+                {statusMessage ? (
+                    <div className="mb-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                        {statusMessage}
+                    </div>
+                ) : null}
+                {errorMessage ? (
+                    <div className="mb-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                        {errorMessage}
+                    </div>
+                ) : null}
 
                 <div className="flex flex-col gap-6">
                     <ResguardoFilters
@@ -135,7 +162,10 @@ export const Resguardo = ({ activePath }) => {
                     </div>
 
                     <div className="mt-6">
-                        <EvidenciasResguardoForm onSubmitRecord={handleAddRemision} />
+                        <EvidenciasResguardoForm
+                            onSubmitRecord={handleAddRemision}
+                            remitidoPor={currentUserName}
+                        />
                     </div>
                 </Surface>
             </SplashOverlay>

@@ -10,11 +10,14 @@ import {
     buildDisplayName,
     buildSuggestedUsername,
     createUser,
+    updateUser,
+    changeUserPassword,
     getCurrentSession,
     getUsers,
 } from "../../services/userAuthService";
 
 const initialForm = {
+    id: null,
     rank: "Inspector Jefe",
     position: "Jefe de Oficina",
     firstName: "",
@@ -28,10 +31,13 @@ export const UsuariosAdmin = ({ activePath }) => {
     const [session] = useState(() => getCurrentSession());
     const [users, setUsers] = useState([]);
     const [form, setForm] = useState(initialForm);
+    const [passwordForm, setPasswordForm] = useState({ userId: null, password: "" });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [usernameTouched, setUsernameTouched] = useState(false);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     const suggestedUsername = useMemo(
         () =>
@@ -74,6 +80,7 @@ export const UsuariosAdmin = ({ activePath }) => {
     }, [session]);
 
     const isAdmin = session?.systemRole === "administrador";
+    const isEditing = Boolean(form.id);
 
     const updateField = (key, value) => {
         setError("");
@@ -92,16 +99,24 @@ export const UsuariosAdmin = ({ activePath }) => {
         }
 
         try {
-            const result = await createUser(form);
+            setIsSubmitting(true);
+            const action = isEditing
+                ? () => updateUser(form.id, form)
+                : () => createUser(form);
+
+            const result = await action();
             if (!result.ok) {
                 setError(result.error);
+                setIsSubmitting(false);
                 return;
             }
 
             const refreshedUsers = await getUsers();
             setUsers(Array.isArray(refreshedUsers) ? refreshedUsers : []);
             setSuccess(
-                `Usuario creado: ${result.user.username} (${buildDisplayName(result.user)})`,
+                isEditing
+                    ? `Usuario actualizado: ${buildDisplayName(result.user) || result.user.username}`
+                    : `Usuario creado: ${result.user.username} (${buildDisplayName(result.user)})`,
             );
             setForm({
                 ...initialForm,
@@ -111,6 +126,44 @@ export const UsuariosAdmin = ({ activePath }) => {
             setUsernameTouched(false);
         } catch (submitError) {
             setError(submitError?.message || "No se pudo crear el usuario.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEdit = (user) => {
+        setError("");
+        setSuccess("");
+        setForm({ ...initialForm, ...user, id: user.id, password: "" });
+        setUsernameTouched(true);
+    };
+
+    const handleCancelEdit = () => {
+        setForm(initialForm);
+        setPasswordForm({ userId: null, password: "" });
+        setUsernameTouched(false);
+        setError("");
+        setSuccess("");
+    };
+
+    const handleChangePassword = async () => {
+        if (!passwordForm.userId || !passwordForm.password) {
+            setError("Seleccione un usuario y escriba la nueva contraseña.");
+            return;
+        }
+
+        setError("");
+        setSuccess("");
+
+        try {
+            setIsChangingPassword(true);
+            await changeUserPassword(passwordForm.userId, passwordForm.password);
+            setSuccess("Contraseña actualizada");
+            setPasswordForm({ userId: null, password: "" });
+        } catch (pwdError) {
+            setError(pwdError?.message || "No se pudo actualizar la contraseña.");
+        } finally {
+            setIsChangingPassword(false);
         }
     };
 
@@ -127,10 +180,13 @@ export const UsuariosAdmin = ({ activePath }) => {
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
                     <Surface variant="glass" className="p-6 text-white">
                         <div className="mb-5">
-                            <h2 className="text-xl font-semibold">Crear usuario</h2>
+                            <h2 className="text-xl font-semibold">
+                                {isEditing ? "Editar usuario" : "Crear usuario"}
+                            </h2>
                             <p className="mt-1 text-sm text-blue-100">
-                                Formulario separado para registrar usuario, contraseña, rango,
-                                posición, nombre y apellido.
+                                {isEditing
+                                    ? "Actualice datos del usuario seleccionado."
+                                    : "Formulario separado para registrar usuario, contraseña, rango, posición, nombre y apellido."}
                             </p>
                         </div>
 
@@ -195,15 +251,17 @@ export const UsuariosAdmin = ({ activePath }) => {
                                         updateField("username", value);
                                     }}
                                 />
-                                <TextInput
-                                    label="Contraseña"
-                                    value={form.password}
-                                    placeholder="Ingrese contraseña"
-                                    type="password"
-                                    variant="glass"
-                                    labelTone="light"
-                                    onValueChange={(value) => updateField("password", value)}
-                                />
+                                {!isEditing ? (
+                                    <TextInput
+                                        label="Contraseña"
+                                        value={form.password}
+                                        placeholder="Ingrese contraseña"
+                                        type="password"
+                                        variant="glass"
+                                        labelTone="light"
+                                        onValueChange={(value) => updateField("password", value)}
+                                    />
+                                ) : null}
                             </div>
 
                             <SelectField
@@ -229,20 +287,23 @@ export const UsuariosAdmin = ({ activePath }) => {
 
                             <div className="flex flex-wrap gap-3">
                                 <Frame className="px-6" type="submit">
-                                    Crear usuario
+                                    {isSubmitting
+                                        ? isEditing
+                                            ? "Guardando..."
+                                            : "Creando..."
+                                        : isEditing
+                                            ? "Guardar cambios"
+                                            : "Crear usuario"}
                                 </Frame>
                                 <Frame
                                     variant="ghost"
                                     className="px-6"
                                     type="button"
                                     onClick={() => {
-                                        setForm(initialForm);
-                                        setError("");
-                                        setSuccess("");
-                                        setUsernameTouched(false);
+                                        handleCancelEdit();
                                     }}
                                 >
-                                    Limpiar
+                                    {isEditing ? "Cancelar" : "Limpiar"}
                                 </Frame>
                             </div>
                         </form>
@@ -271,8 +332,65 @@ export const UsuariosAdmin = ({ activePath }) => {
                                     <p className="mt-1 text-xs text-blue-200">
                                         Usuario: {user.username}
                                     </p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                        <Frame
+                                            variant="ghost"
+                                            className="px-3 py-1"
+                                            type="button"
+                                            onClick={() => handleEdit(user)}
+                                        >
+                                            Editar
+                                        </Frame>
+                                        <Frame
+                                            variant="ghost"
+                                            className="px-3 py-1"
+                                            type="button"
+                                            onClick={() =>
+                                                setPasswordForm({ userId: user.id, password: "" })
+                                            }
+                                        >
+                                            Cambiar contraseña
+                                        </Frame>
+                                    </div>
                                 </div>
                             ))}
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                <p className="text-sm font-semibold text-white">Actualizar contraseña</p>
+                                <div className="mt-2 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                                    <SelectField
+                                        label="Usuario"
+                                        labelTone="light"
+                                        variant="glass"
+                                        value={passwordForm.userId || ""}
+                                        placeholder="Seleccione"
+                                        options={users.map((u) => ({
+                                            value: u.id,
+                                            label: buildDisplayName(u) || u.username,
+                                        }))}
+                                        onValueChange={(value) =>
+                                            setPasswordForm((prev) => ({ ...prev, userId: value }))
+                                        }
+                                    />
+                                    <TextInput
+                                        label="Nueva contraseña"
+                                        value={passwordForm.password}
+                                        type="password"
+                                        variant="glass"
+                                        labelTone="light"
+                                        placeholder="Ingrese nueva contraseña"
+                                        onValueChange={(value) =>
+                                            setPasswordForm((prev) => ({ ...prev, password: value }))
+                                        }
+                                    />
+                                    <Frame
+                                        className="self-end px-4"
+                                        type="button"
+                                        onClick={handleChangePassword}
+                                    >
+                                        {isChangingPassword ? "Guardando..." : "Actualizar"}
+                                    </Frame>
+                                </div>
+                            </div>
                         </div>
                     </Surface>
                 </div>

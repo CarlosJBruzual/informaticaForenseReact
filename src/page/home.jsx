@@ -12,6 +12,7 @@ import { authenticateUser, ensureUserSeed, setCurrentSession } from "../services
 
 export const HomePageWithLogin = () => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [showRecovery, setShowRecovery] = useState(false);
     const [credentials, setCredentials] = useState({ username: "", password: "" });
     const [loginError, setLoginError] = useState("");
@@ -29,12 +30,19 @@ export const HomePageWithLogin = () => {
         return () => clearTimeout(timer);
     }, [isLoggingIn]);
 
-    const handleLogin = async () => {
-        if (isLoggingIn) return;
+    const handleLogin = async (event) => {
+        event?.preventDefault();
+        if (isLoggingIn || isAuthenticating) return;
+        setLoginError("");
+        setIsAuthenticating(true);
         try {
-            const user = await authenticateUser(credentials);
+            const user = await authenticateUser({
+                username: credentials.username.trim(),
+                password: credentials.password,
+            });
             if (!user) {
                 setLoginError("Usuario o contraseña inválidos.");
+                setIsAuthenticating(false);
                 return;
             }
 
@@ -45,12 +53,15 @@ export const HomePageWithLogin = () => {
         } catch (error) {
             if (error?.status === 401 || error?.status === 403) {
                 setLoginError(error.message || "Usuario o contraseña inválidos.");
+                setIsAuthenticating(false);
                 return;
             }
 
             setLoginError("No se pudo conectar con el backend. Verifique el servidor.");
+            setIsAuthenticating(false);
             return;
         }
+        setIsAuthenticating(false);
     };
 
     return (
@@ -81,58 +92,63 @@ export const HomePageWithLogin = () => {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <TextInput
-                                        label="Usuario"
-                                        value={credentials.username}
-                                        placeholder="Ingrese su usuario"
-                                        variant="glass"
-                                        labelTone="light"
-                                        onValueChange={(value) =>
-                                            setCredentials((prev) => ({
-                                                ...prev,
-                                                username: value,
-                                            }))
-                                        }
-                                    />
-                                    <TextInput
-                                        label="Contraseña"
-                                        value={credentials.password}
-                                        placeholder="Ingrese su contraseña"
-                                        type="password"
-                                        variant="glass"
-                                        labelTone="light"
-                                        onValueChange={(value) =>
-                                            setCredentials((prev) => ({
-                                                ...prev,
-                                                password: value,
-                                            }))
-                                        }
-                                    />
+                                    <form className="space-y-4" onSubmit={handleLogin}>
+                                        <TextInput
+                                            label="Usuario"
+                                            value={credentials.username}
+                                            placeholder="Ingrese su usuario"
+                                            variant="glass"
+                                            labelTone="light"
+                                            onValueChange={(value) =>
+                                                setCredentials((prev) => ({
+                                                    ...prev,
+                                                    username: value,
+                                                }))
+                                            }
+                                        />
+                                        <TextInput
+                                            label="Contraseña"
+                                            value={credentials.password}
+                                            placeholder="Ingrese su contraseña"
+                                            type="password"
+                                            variant="glass"
+                                            labelTone="light"
+                                            onValueChange={(value) =>
+                                                setCredentials((prev) => ({
+                                                    ...prev,
+                                                    password: value,
+                                                }))
+                                            }
+                                        />
 
-                                    <div className="flex items-center justify-between text-sm text-blue-100">
-                                        <label className="inline-flex items-center gap-2">
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-white/20 bg-white/10 text-indigo-400 focus:ring-indigo-300"
-                                            />
-                                            <span>Recordarme</span>
-                                        </label>
-                                        <button
-                                            type="button"
-                                            className="font-medium text-blue-100 hover:text-white"
-                                            onClick={() => setShowRecovery(true)}
+                                        <div className="flex items-center justify-between text-sm text-blue-100">
+                                            <label className="inline-flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-white/20 bg-white/10 text-indigo-400 focus:ring-indigo-300"
+                                                    disabled
+                                                />
+                                                <span>Recordarme</span>
+                                            </label>
+                                            <button
+                                                type="button"
+                                                className="font-medium text-blue-100 hover:text-white"
+                                                onClick={() => setShowRecovery(true)}
+                                            >
+                                                ¿Olvidó su contraseña?
+                                            </button>
+                                        </div>
+
+                                        <Frame
+                                            className="w-full justify-center disabled:cursor-not-allowed disabled:opacity-70"
+                                            type="submit"
+                                            onClick={handleLogin}
+                                            disabled={isLoggingIn || isAuthenticating}
                                         >
-                                            ¿Olvidó su contraseña?
-                                        </button>
-                                    </div>
+                                            {isAuthenticating ? "Ingresando..." : "Ingresar"}
+                                        </Frame>
+                                    </form>
 
-                                    <Frame
-                                        className="w-full justify-center disabled:cursor-not-allowed disabled:opacity-70"
-                                        onClick={handleLogin}
-                                        disabled={isLoggingIn}
-                                    >
-                                        Ingresar
-                                    </Frame>
                                     {loginError ? (
                                         <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
                                             {loginError}
@@ -193,7 +209,7 @@ export const HomePageWithLogin = () => {
                 </div>
             </PageContainer>
             <SplashOverlay isVisible={isLoggingIn}>
-                <LoginSplash />
+                <LoginSplash message="Iniciando sesión..." />
             </SplashOverlay>
         </PageShell>
     );

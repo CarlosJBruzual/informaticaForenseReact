@@ -33,17 +33,35 @@ const matchIncludes = (source, query) => {
 export const RemisionLaboratorio = ({ activePath }) => {
     const [remisiones, setRemisiones] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
     const [filters, setFilters] = useState(initialFilters);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const { policy } = useRoleAccess();
     const currentUserName = policy.label;
 
-    useEffect(() => {
+    const loadRemisiones = async () => {
         setIsLoading(true);
-        fetchRemisionesLaboratorio()
-            .then((data) => setRemisiones(data))
-            .finally(() => setIsLoading(false));
+        setErrorMessage("");
+        try {
+            const data = await fetchRemisionesLaboratorio();
+            setRemisiones(Array.isArray(data) ? data : []);
+        } catch (error) {
+            setErrorMessage(error?.message || "No se pudieron cargar las remisiones.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadRemisiones();
     }, []);
+
+    useEffect(() => {
+        if (!statusMessage) return undefined;
+        const timer = setTimeout(() => setStatusMessage(""), 4000);
+        return () => clearTimeout(timer);
+    }, [statusMessage]);
 
     const filteredItems = useMemo(() => {
         return remisiones.filter((item) => {
@@ -65,17 +83,10 @@ export const RemisionLaboratorio = ({ activePath }) => {
     };
 
     const handleAddRemision = (data) => {
-        const newItem = {
-            id: `LAB-${String(remisiones.length + 1).padStart(3, "0")}`,
-            numeroRemision: data.numeroRemision,
-            expediente: data.expediente,
-            prcc: data.prcc,
-            fechaRemision: data.fechaRemision,
-            remitidoPor: currentUserName,
-            recibidoPor: data.recibidoPor,
-            descripcion: data.descripcionEvidencia,
-        };
-        setRemisiones((prev) => [newItem, ...prev]);
+        if (!data) return;
+        setRemisiones((prev) => [data, ...prev]);
+        setStatusMessage("Remisión registrada");
+        setErrorMessage("");
         setIsFormOpen(false);
     };
 
@@ -87,14 +98,43 @@ export const RemisionLaboratorio = ({ activePath }) => {
                         <h2 className="text-xl font-semibold text-white">Remisión de Evidencia Derivada</h2>
                         <p className="text-sm text-blue-100">Consulta y registra remisiones hacia el laboratorio físico.</p>
                     </div>
-                    <Frame
-                        className="w-full justify-center sm:w-auto"
-                        type="button"
-                        onClick={() => setIsFormOpen(true)}
-                    >
-                        Registrar remisión
-                    </Frame>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <Frame
+                            variant="ghost"
+                            className="w-full justify-center sm:w-auto"
+                            type="button"
+                            onClick={() => {
+                                setErrorMessage("");
+                                setStatusMessage("");
+                                loadRemisiones();
+                            }}
+                        >
+                            Actualizar
+                        </Frame>
+                        <Frame
+                            className="w-full justify-center sm:w-auto"
+                            type="button"
+                            onClick={() => {
+                                setErrorMessage("");
+                                setStatusMessage("");
+                                setIsFormOpen(true);
+                            }}
+                        >
+                            Registrar remisión
+                        </Frame>
+                    </div>
                 </div>
+
+                {statusMessage ? (
+                    <div className="mb-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                        {statusMessage}
+                    </div>
+                ) : null}
+                {errorMessage ? (
+                    <div className="mb-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                        {errorMessage}
+                    </div>
+                ) : null}
 
                 <div className="flex flex-col gap-6">
                     <LaboratorioFilters
@@ -137,7 +177,10 @@ export const RemisionLaboratorio = ({ activePath }) => {
                     </div>
 
                     <div className="mt-6">
-                        <RemisionLaboratorioForm onSubmitRecord={handleAddRemision} />
+                        <RemisionLaboratorioForm
+                            onSubmitRecord={handleAddRemision}
+                            remitidoPor={currentUserName}
+                        />
                     </div>
                 </Surface>
             </SplashOverlay>

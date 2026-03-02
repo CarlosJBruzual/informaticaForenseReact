@@ -7,6 +7,12 @@ import { Frame } from "../../components/ui/Frame";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
 import { fetchRemisionesResguardo } from "../../services/resguardoService";
 import { fetchRemisionesLaboratorio } from "../../services/laboratorioService";
+import { buildDisplayName, getUsers } from "../../services/userAuthService";
+import {
+    exportDashboardMetricsCsv,
+    exportFuncionariosCsv,
+    getDashboardMetrics,
+} from "../../services/dashboardService";
 
 const experticiaLabelMap = {
     Informatica: "Informática",
@@ -14,6 +20,29 @@ const experticiaLabelMap = {
 };
 
 const formatPercent = (value) => `${Math.round(value)}%`;
+
+const coalesceNumber = (...values) => {
+    for (const value of values) {
+        const numeric = typeof value === "string" ? Number(value) : value;
+        if (Number.isFinite(numeric)) return numeric;
+    }
+    return undefined;
+};
+
+const coalesceValue = (...values) => {
+    for (const value of values) {
+        if (value !== undefined && value !== null && value !== "") return value;
+    }
+    return undefined;
+};
+
+const normalizeName = (value) =>
+    String(value ?? "")
+        .normalize("NFD")
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
 
 const getLastDate = (dates) => {
     if (!dates.length) return null;
@@ -50,6 +79,14 @@ export const DashboardHome = ({ activePath }) => {
     const [periodValue, setPeriodValue] = useState("");
     const [isExportingGeneral, setIsExportingGeneral] = useState(false);
     const [isExportingFuncionarios, setIsExportingFuncionarios] = useState(false);
+    const [exportMessage, setExportMessage] = useState("");
+    const [exportError, setExportError] = useState("");
+    const [apiMetrics, setApiMetrics] = useState(null);
+    const [apiMetricsError, setApiMetricsError] = useState("");
+    const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+    const [users, setUsers] = useState([]);
+    const [usersError, setUsersError] = useState("");
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
     useEffect(() => {
         setIsLoadingExtras(true);
@@ -61,7 +98,48 @@ export const DashboardHome = ({ activePath }) => {
             .finally(() => setIsLoadingExtras(false));
     }, []);
 
-    const metrics = useMemo(() => {
+    useEffect(() => {
+        setIsLoadingMetrics(true);
+        getDashboardMetrics()
+            .then((data) => {
+                setApiMetrics(data);
+                setApiMetricsError("");
+            })
+            .catch((error) => {
+                setApiMetricsError(error?.message || "No se pudieron cargar las métricas.");
+            })
+            .finally(() => setIsLoadingMetrics(false));
+    }, []);
+
+    useEffect(() => {
+        setIsLoadingUsers(true);
+        getUsers()
+            .then((data) => {
+                setUsers(Array.isArray(data) ? data : []);
+                setUsersError("");
+            })
+            .catch((error) => {
+                setUsersError(error?.message || "No se pudieron cargar los usuarios.");
+            })
+            .finally(() => setIsLoadingUsers(false));
+    }, []);
+
+    const registeredNames = useMemo(() => {
+        if (!users.length) return new Set();
+        const names = users.flatMap((user) => {
+            const variants = [];
+            if (user.username) variants.push(user.username);
+            const display = buildDisplayName(user);
+            if (display) variants.push(display);
+            const plainName = `${user.firstName ?? ""} ${user.lastName ?? ""}`;
+            if (plainName.trim()) variants.push(plainName);
+            return variants;
+        });
+
+        return new Set(names.map(normalizeName).filter(Boolean));
+    }, [users]);
+
+    const computedMetrics = useMemo(() => {
         const solicitudesSource = data.filter((item) =>
             matchesPeriod(item.fechaRecepcion || item.fechaSolicitud, periodMode, periodValue),
         );
@@ -143,7 +221,70 @@ export const DashboardHome = ({ activePath }) => {
         };
     }, [data, laboratorio, resguardo, periodMode, periodValue]);
 
+    const metrics = useMemo(() => {
+        if (!apiMetrics || periodValue) return computedMetrics;
+
+        const payload = apiMetrics?.data ?? apiMetrics;
+
+        const experticiaFromEntries = Array.isArray(payload.experticiaEntries)
+            ? payload.experticiaEntries
+            : [];
+
+        const experticiaFromCounts = payload.experticiaCounts
+            ? Object.entries(payload.experticiaCounts).map(([label, value]) => ({
+                  label,
+                  value,
+              }))
+            : [];
+
+        const experticiaEntries = (experticiaFromEntries.length ? experticiaFromEntries : experticiaFromCounts)
+            .map((entry) => ({
+                label: entry.label,
+                value: coalesceNumber(entry.value, 0) ?? 0,
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        return {
+            total: coalesceNumber(payload.totalSolicitudes, payload.total, computedMetrics.total) ?? 0,
+            remitidas:
+                coalesceNumber(
+                    payload.dictamenesRemitidos,
+                    payload.remitidas,
+                    computedMetrics.remitidas,
+                ) ?? 0,
+            pendientes:
+                coalesceNumber(payload.pendientes, payload.porRemitir, computedMetrics.pendientes) ?? 0,
+            porGuardia:
+                coalesceNumber(payload.porGuardia, payload.pendientesGuardia, computedMetrics.porGuardia) ?? 0,
+            remitidasPct:
+                coalesceNumber(payload.remitidasPct, payload.remitidasPorcentaje, computedMetrics.remitidasPct) ?? 0,
+            guardiaPct:
+                coalesceNumber(payload.guardiaPct, payload.guardiaPorcentaje, computedMetrics.guardiaPct) ?? 0,
+            avgRemisionDays:
+                coalesceNumber(payload.avgRemisionDays, payload.tiempoPromedio, computedMetrics.avgRemisionDays) ?? null,
+            lastRecepcion:
+                coalesceValue(payload.lastRecepcion, payload.ultimaRecepcion, computedMetrics.lastRecepcion) ?? null,
+            experticiaEntries: experticiaEntries.length ? experticiaEntries : computedMetrics.experticiaEntries,
+            resguardoTotal:
+                coalesceNumber(payload.resguardoTotal, payload.resguardos, computedMetrics.resguardoTotal) ?? 0,
+            laboratorioTotal:
+                coalesceNumber(payload.laboratorioTotal, payload.laboratorio, computedMetrics.laboratorioTotal) ?? 0,
+            lastResguardo:
+                coalesceValue(payload.lastResguardo, payload.ultimaResguardo, computedMetrics.lastResguardo) ?? null,
+            lastLaboratorio:
+                coalesceValue(payload.lastLaboratorio, payload.ultimaLaboratorio, computedMetrics.lastLaboratorio) ?? null,
+            periodLabel: coalesceValue(payload.periodLabel, computedMetrics.periodLabel) ?? "Todos",
+        };
+    }, [apiMetrics, computedMetrics, periodValue]);
+
     const funcionarioStats = useMemo(() => {
+        const shouldCountName = (name) => {
+            const normalized = normalizeName(name);
+            if (!normalized) return false;
+            if (registeredNames.size === 0) return true; // fallback to previous behavior if no users loaded
+            return registeredNames.has(normalized);
+        };
+
         const map = {};
         const ensure = (name) => {
             const safeName = name?.trim() || "Sin nombre";
@@ -172,30 +313,38 @@ export const DashboardHome = ({ activePath }) => {
                 periodValue,
             );
 
-            if (inRangeSolicitud && item.solicitante) {
+            if (inRangeSolicitud && item.solicitante && shouldCountName(item.solicitante)) {
                 const entry = ensure(item.solicitante);
                 entry.solicitudes += 1;
                 if (!item.remision) entry.porRemitir += 1;
             }
-            if (inRangeRemision && item.remision?.funcionarioEntrega) {
+            if (inRangeRemision && item.remision?.funcionarioEntrega && shouldCountName(item.remision.funcionarioEntrega)) {
                 const entry = ensure(item.remision.funcionarioEntrega);
                 entry.dictamenes += 1;
             }
-            if (inRangeRemision && item.remision?.funcionarioRecibe) {
+            if (inRangeRemision && item.remision?.funcionarioRecibe && shouldCountName(item.remision.funcionarioRecibe)) {
                 const entry = ensure(item.remision.funcionarioRecibe);
                 entry.dictamenes += 1;
             }
         });
 
         resguardo.forEach((item) => {
-            if (matchesPeriod(item.fechaRecepcion, periodMode, periodValue) && item.recibidoPor) {
+            if (
+                matchesPeriod(item.fechaRecepcion, periodMode, periodValue) &&
+                item.recibidoPor &&
+                shouldCountName(item.recibidoPor)
+            ) {
                 const entry = ensure(item.recibidoPor);
                 entry.resguardo += 1;
             }
         });
 
         laboratorio.forEach((item) => {
-            if (matchesPeriod(item.fechaRemision, periodMode, periodValue) && item.recibidoPor) {
+            if (
+                matchesPeriod(item.fechaRemision, periodMode, periodValue) &&
+                item.recibidoPor &&
+                shouldCountName(item.recibidoPor)
+            ) {
                 const entry = ensure(item.recibidoPor);
                 entry.laboratorio += 1;
             }
@@ -212,7 +361,7 @@ export const DashboardHome = ({ activePath }) => {
                     row.laboratorio,
             }))
             .sort((a, b) => b.total - a.total);
-    }, [data, laboratorio, resguardo, periodMode, periodValue]);
+            }, [data, laboratorio, registeredNames, resguardo, periodMode, periodValue]);
 
     const pendientesPct = metrics.total ? (metrics.pendientes / metrics.total) * 100 : 0;
     const experticiaTotal = metrics.experticiaEntries.reduce((sum, entry) => sum + entry.value, 0);
@@ -279,21 +428,49 @@ export const DashboardHome = ({ activePath }) => {
     const periodInputType =
         periodMode === "day" ? "date" : periodMode === "month" ? "month" : "number";
 
-    const handleExportGeneral = () => {
+    const handleExportGeneral = async () => {
         if (isExportingGeneral) return;
+        setExportError("");
+        setExportMessage("");
         setIsExportingGeneral(true);
-        setTimeout(() => setIsExportingGeneral(false), 1200); // placeholder until API wiring
+        try {
+            await exportDashboardMetricsCsv();
+            setExportMessage("CSV de métricas generado");
+        } catch (error) {
+            setExportError(error?.message || "No se pudo exportar métricas.");
+        } finally {
+            setIsExportingGeneral(false);
+        }
     };
 
-    const handleExportFuncionarios = () => {
+    const handleExportFuncionarios = async () => {
         if (isExportingFuncionarios) return;
+        setExportError("");
+        setExportMessage("");
         setIsExportingFuncionarios(true);
-        setTimeout(() => setIsExportingFuncionarios(false), 1200); // placeholder until API wiring
+        try {
+            await exportFuncionariosCsv();
+            setExportMessage("CSV por funcionario generado");
+        } catch (error) {
+            setExportError(error?.message || "No se pudo exportar funcionarios.");
+        } finally {
+            setIsExportingFuncionarios(false);
+        }
     };
 
     return (
         <DashboardLayout activePath={activePath} contentWidth="full" contentPadding="sm">
             <Surface variant="glass" className="p-4 text-white">
+                {exportMessage ? (
+                    <div className="mb-3 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                        {exportMessage}
+                    </div>
+                ) : null}
+                {exportError || apiMetricsError || usersError ? (
+                    <div className="mb-3 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                        {exportError || apiMetricsError || usersError}
+                    </div>
+                ) : null}
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h2 className="text-lg font-semibold">Inicio</h2>
@@ -355,7 +532,7 @@ export const DashboardHome = ({ activePath }) => {
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-                    {isLoading || isLoadingExtras
+                    {isLoading || isLoadingExtras || isLoadingMetrics || isLoadingUsers
                         ? Array.from({ length: 5 }).map((_, index) => (
                               <Surface
                                   key={`summary-skel-${index}`}
@@ -406,7 +583,7 @@ export const DashboardHome = ({ activePath }) => {
                             )}
                         </Frame>
                     </div>
-                    {isLoading || isLoadingExtras ? (
+                    {isLoading || isLoadingExtras || isLoadingMetrics || isLoadingUsers ? (
                         <div className="mt-3 space-y-2">
                             <Skeleton className="h-3 w-48" />
                             <Skeleton className="h-3 w-full" />
@@ -453,7 +630,7 @@ export const DashboardHome = ({ activePath }) => {
                 </Surface>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    {isLoading
+                    {isLoading || isLoadingExtras || isLoadingMetrics || isLoadingUsers
                         ? Array.from({ length: 3 }).map((_, index) => (
                               <Surface
                                   key={`ops-skel-${index}`}
@@ -479,7 +656,7 @@ export const DashboardHome = ({ activePath }) => {
                     <Surface variant="dark" className="rounded-xl p-3">
                         <p className="text-sm font-semibold text-white">Distribución por experticia</p>
                         <div className="mt-3 space-y-3">
-                            {isLoading ? (
+                            {isLoading || isLoadingExtras || isLoadingMetrics || isLoadingUsers ? (
                                 <>
                                     <Skeleton className="h-3 w-44" />
                                     <Skeleton className="h-2 w-full" />
@@ -594,7 +771,7 @@ export const DashboardHome = ({ activePath }) => {
                             )}
                         </Frame>
                     </div>
-                    {isLoading || isLoadingExtras ? (
+                    {isLoading || isLoadingExtras || isLoadingMetrics || isLoadingUsers ? (
                         <div className="mt-3 space-y-2">
                             <Skeleton className="h-3 w-48" />
                             <Skeleton className="h-3 w-full" />

@@ -1,27 +1,69 @@
-const mockRemisionesLaboratorio = [
-    {
-        id: "LAB-001",
-        numeroRemision: "REM-LAB-2024-011",
-        expediente: "EXP-CIM-2024-221",
-        prcc: "PRCC-09-4421",
-        fechaRemision: "2024-09-10",
-        remitidoPor: "Inspector Jefe Carlos Rivas",
-        recibidoPor: "Lic. Andrea Torres",
-        descripcion: "Teléfono móvil REDMI M2003J15SS derivado para análisis físico.",
-    },
-    {
-        id: "LAB-002",
-        numeroRemision: "REM-LAB-2024-015",
-        expediente: "EXP-CIM-2024-229",
-        prcc: "PRCC-09-4433",
-        fechaRemision: "2024-09-12",
-        remitidoPor: "Inspector Sandra Villalobos",
-        recibidoPor: "Ing. Carlos Meza",
-        descripcion: "Disco duro externo Seagate 2TB derivado para extracción física.",
-    },
-];
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://informaticabackend.onrender.com/api").replace(
+    /\/+$/,
+    "",
+);
 
-export const fetchRemisionesLaboratorio = () =>
-    new Promise((resolve) => {
-        setTimeout(() => resolve(mockRemisionesLaboratorio), 500);
+const buildQueryString = (params = {}) => {
+    const entries = Object.entries(params)
+        .filter(([, value]) => value !== undefined && value !== null && value !== "")
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    return entries.length ? `?${entries.join("&")}` : "";
+};
+
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
+        ...options,
     });
+
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    const data = isJson ? await response.json() : null;
+
+    if (!response.ok) {
+        const error = new Error(data?.message || "Error en la solicitud");
+        error.status = response.status;
+        error.data = data;
+        throw error;
+    }
+
+    return data;
+}
+
+export const fetchRemisionesLaboratorio = async (filters = {}) => {
+    const qs = buildQueryString(filters);
+    return apiRequest(`/laboratorio${qs}`);
+};
+
+export const createRemisionLaboratorio = async (payload) => {
+    const data = await apiRequest("/laboratorio", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    return { ok: true, remision: data };
+};
+
+export const getRemisionLaboratorioById = async (id) => {
+    if (!id) throw new Error("ID requerido");
+    return apiRequest(`/laboratorio/${id}`);
+};
+
+export const updateRemisionLaboratorio = async (id, payload) => {
+    if (!id) throw new Error("ID requerido");
+    const data = await apiRequest(`/laboratorio/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+    return { ok: true, remision: data };
+};
+
+export const deleteRemisionLaboratorio = async (id) => {
+    if (!id) throw new Error("ID requerido");
+    await apiRequest(`/laboratorio/${id}`, { method: "DELETE" });
+    return { ok: true };
+};
+
+// Alias legible
+export const listLaboratorio = fetchRemisionesLaboratorio;

@@ -1,84 +1,103 @@
-const mockSolicitudes = [
-    {
-        id: "SOL-2024-087",
-        numeroEntrada: "ENT-2024-118",
-        fechaRecepcion: "2024-09-04",
-        solicitante: "Inspector Jefe Carlos Rivas",
-        registradoPor: "Inspector Jefe Carlos Rivas",
-        numeroSolicitud: "SOL-2024-087",
-        fechaSolicitud: "2024-09-03",
-        expediente: "EXP-CIM-2024-221",
-        prcc: "PRCC-09-4421",
-        descripcionEvidencia: "Un (01) teléfono móvil celular.",
-        evidenciaMarcaModelo: "REDMI M2003J15SS",
-        evidenciaColorOtra:
-            "Color celeste y morado. IMEI 865296050284833 e IMEI 2 865296051804837. Chip Digitel serial 895802191017015789.",
-        tipoExperticia: "Adquisición de Evidencia de Digital",
-        porGuardia: false,
-        remision: {
-            fechaRemision: "2024-09-07",
-            numeroDictamen: "DICT-2024-038",
-            funcionarioRecibe: "Perito Luis Ortega",
-            funcionarioEntrega: "Inspector Jefe Carlos Rivas",
-        },
-    },
-    {
-        id: "SOL-2024-091",
-        numeroEntrada: "ENT-2024-119",
-        fechaRecepcion: "2024-09-05",
-        solicitante: "Detective Lourdes Paredes",
-        registradoPor: "Detective Lourdes Paredes",
-        numeroSolicitud: "SOL-2024-091",
-        fechaSolicitud: "2024-09-05",
-        expediente: "",
-        prcc: "PRCC-09-4427",
-        descripcionEvidencia: "Teléfono móvil.",
-        evidenciaMarcaModelo: "Samsung A53",
-        evidenciaColorOtra: "IMEI 356783109998221. No aplica.",
-        tipoExperticia: "Determinacion de Evidencia Digital",
-        porGuardia: true,
-    },
-    {
-        id: "SOL-2024-096",
-        numeroEntrada: "ENT-2024-122",
-        fechaRecepcion: "2024-09-06",
-        solicitante: "Inspector Sandra Villalobos",
-        registradoPor: "Inspector Sandra Villalobos",
-        numeroSolicitud: "SOL-2024-096",
-        fechaSolicitud: "2024-09-06",
-        expediente: "EXP-CIM-2024-229",
-        prcc: "PRCC-09-4433",
-        descripcionEvidencia: "Disco duro externo.",
-        evidenciaMarcaModelo: "Seagate 2TB",
-        evidenciaColorOtra: "No aplica.",
-        tipoExperticia: "Coleccion de Registros Filmicos",
-        porGuardia: false,
-        remision: {
-            fechaRemision: "2024-09-08",
-            numeroDictamen: "DICT-2024-041",
-            funcionarioRecibe: "Perito Natalia Rojas",
-            funcionarioEntrega: "Inspector Sandra Villalobos",
-        },
-    },
-];
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://informaticabackend.onrender.com/api").replace(
+    /\/+$/,
+    "",
+);
 
-export const fetchSolicitudes = () =>
-    new Promise((resolve) => {
-        setTimeout(() => resolve(mockSolicitudes), 800);
+const buildQueryString = (params = {}) => {
+    const entries = Object.entries(params)
+        .filter(([, value]) => value !== undefined && value !== null && value !== "")
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    return entries.length ? `?${entries.join("&")}` : "";
+};
+
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
+        ...options,
     });
 
-export const fetchEvidenciasByExpediente = (expediente) =>
-    new Promise((resolve) => {
-        setTimeout(() => {
-            if (!expediente) {
-                resolve(undefined);
-                return;
-            }
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    const data = isJson ? await response.json() : null;
 
-            const expedienteLower = expediente.toLowerCase();
-            const found = mockSolicitudes.find(
-                (item) => item.expediente && item.expediente.toLowerCase() === expedienteLower,
-            );
-            resolve(found);
-        }, 400);
+    if (!response.ok) {
+        if (response.status === 404) {
+            const error = new Error("No encontrado");
+            error.status = 404;
+            error.data = data;
+            throw error;
+        }
+        const error = new Error(data?.message || "Error en la solicitud");
+        error.status = response.status;
+        error.data = data;
+        throw error;
+    }
+
+    return data;
+}
+
+export const fetchSolicitudes = async (filters = {}) => {
+    const qs = buildQueryString(filters);
+    return apiRequest(`/solicitudes${qs}`);
+};
+
+export const createSolicitud = async (payload) => {
+    const data = await apiRequest("/solicitudes", {
+        method: "POST",
+        body: JSON.stringify(payload),
     });
+    return { ok: true, solicitud: data };
+};
+
+export const getSolicitudById = async (id) => {
+    if (!id) throw new Error("ID requerido");
+    return apiRequest(`/solicitudes/${id}`);
+};
+
+export const updateSolicitud = async (id, payload) => {
+    if (!id) throw new Error("ID requerido");
+    const data = await apiRequest(`/solicitudes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+    return { ok: true, solicitud: data };
+};
+
+export const deleteSolicitud = async (id) => {
+    if (!id) throw new Error("ID requerido");
+    await apiRequest(`/solicitudes/${id}`, { method: "DELETE" });
+    return { ok: true };
+};
+
+export const updateSolicitudGuardia = async (id, payload) => {
+    if (!id) throw new Error("ID requerido");
+    const data = await apiRequest(`/solicitudes/${id}/guardia`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
+    return { ok: true, solicitud: data };
+};
+
+export const updateSolicitudRemision = async (id, payload) => {
+    if (!id) throw new Error("ID requerido");
+    const data = await apiRequest(`/solicitudes/${id}/remision`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
+    return { ok: true, solicitud: data };
+};
+
+export const fetchEvidenciasByExpediente = async (expediente) => {
+    if (!expediente) return null;
+    try {
+        return await apiRequest(`/solicitudes/by-expediente/${encodeURIComponent(expediente)}`);
+    } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+    }
+};
+
+// Alias legible para compatibilidad
+export const listSolicitudes = fetchSolicitudes;

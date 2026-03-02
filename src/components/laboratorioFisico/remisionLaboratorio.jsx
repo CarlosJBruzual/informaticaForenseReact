@@ -3,6 +3,7 @@ import { Surface } from "../ui/Surface";
 import { TextInput } from "../ui/TextInput";
 import { TextAreaField } from "../ui/TextAreaField";
 import { Frame } from "../ui/Frame";
+import { createRemisionLaboratorio } from "../../services/laboratorioService";
 
 const initialState = {
 	numeroRemision: "",
@@ -13,25 +14,45 @@ const initialState = {
 	recibidoPor: "",
 };
 
-export const RemisionLaboratorioForm = ({ onSubmitRecord }) => {
+export const RemisionLaboratorioForm = ({ onSubmitRecord, remitidoPor }) => {
 	const [formData, setFormData] = useState(initialState);
 	const [status, setStatus] = useState("");
+	const [submitError, setSubmitError] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const handleChange = (field, value) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault();
-		if (onSubmitRecord) {
-			onSubmitRecord(formData);
+		setSubmitError("");
+		setStatus("");
+		setIsSubmitting(true);
+		try {
+			const result = await createRemisionLaboratorio({
+				numeroRemision: formData.numeroRemision,
+				fechaRemision: formData.fechaRemision,
+				expediente: formData.expediente,
+				prcc: formData.prcc,
+				descripcion: formData.descripcionEvidencia,
+				recibidoPor: formData.recibidoPor,
+				remitidoPor: remitidoPor || formData.recibidoPor,
+			});
+			onSubmitRecord?.(result?.remision || result);
+			setStatus("Remisión registrada");
+			setFormData(initialState);
+		} catch (error) {
+			setSubmitError(error?.message || "No se pudo registrar la remisión.");
+		} finally {
+			setIsSubmitting(false);
 		}
-		setStatus("Remisión registrada localmente (demo)");
 	};
 
 	const handleReset = () => {
 		setFormData(initialState);
 		setStatus("");
+		setSubmitError("");
 	};
 
 	return (
@@ -96,11 +117,12 @@ export const RemisionLaboratorioForm = ({ onSubmitRecord }) => {
 					<Frame variant="ghost" className="px-6" type="button" onClick={handleReset}>
 						Limpiar
 					</Frame>
-					<Frame variant="primary" className="px-6" type="submit">
-						Registrar remisión
+					<Frame variant="primary" className="px-6" type="submit" disabled={isSubmitting}>
+						{isSubmitting ? "Guardando..." : "Registrar remisión"}
 					</Frame>
 				</div>
 
+				{submitError ? <p className="text-sm text-red-200">{submitError}</p> : null}
 				{status ? <p className="text-sm text-green-200">{status}</p> : null}
 			</form>
 		</Surface>

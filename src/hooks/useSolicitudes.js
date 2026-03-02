@@ -6,25 +6,22 @@ export const useSolicitudes = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const load = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const items = await fetchSolicitudes();
+            setData(Array.isArray(items) ? items : []);
+        } catch (err) {
+            setError(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        let isActive = true;
-
-        fetchSolicitudes()
-            .then((items) => {
-                if (!isActive) return;
-                setData(items);
-                setIsLoading(false);
-            })
-            .catch((err) => {
-                if (!isActive) return;
-                setError(err);
-                setIsLoading(false);
-            });
-
-        return () => {
-            isActive = false;
-        };
+        load();
     }, []);
 
-    return { data, isLoading, error };
+    return { data, isLoading, error, refetch: load };
 };
